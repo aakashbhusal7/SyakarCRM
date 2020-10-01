@@ -171,13 +171,7 @@ android {
             buildConfigField "String", "CODEPUSH_KEY",  '""'
             signingConfig signingConfigs.debug
         }
-
-        releaseStaging {            
-            buildConfigField "String", "CODEPUSH_KEY",  '"jT5E-5DmICg9khdhvH2C2tQh7zTnVFM-YLP_B"'
-            // Note: It is a good idea to provide matchingFallbacks for the new buildType you create to prevent build issues
-            // Add the following line if not already there
-            matchingFallbacks = ['release']
-        }
+        
 
         release {
             buildConfigField "String", "CODEPUSH_KEY",  '"jT5E-5DmICg9khdhvH2C2tQh7zTnVFM-YLP_B"'
