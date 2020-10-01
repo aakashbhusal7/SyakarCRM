@@ -36,7 +36,6 @@
     "appcenter-crashes": "3.1.2",
     "easy-peasy": "^3.3.1",
     "formik": "^2.1.5",
-    "graceful-fs": "^4.2.4",
     "i18n-js": "^3.5.1",
     "lodash": "^4.17.19",
     "moment": "^2.27.0",
@@ -72,6 +71,9 @@
     "prettier-eslint": "^9.0.0",
     "react-test-renderer": "16.13.1",
     "remote-redux-devtools": "^0.5.16"
+  },
+  "resolutions": {
+    "graceful-fs": "4.2.4"
   },
   "jest": {
     "preset": "react-native"
