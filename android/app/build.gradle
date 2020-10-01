@@ -168,17 +168,34 @@ android {
 
     buildTypes {
         debug {
+            buildConfigField "String", "CODEPUSH_KEY",  '""'
             signingConfig signingConfigs.debug
         }
 
+        releaseStaging {
+            buildConfigField "String", "CODEPUSH_KEY",  '"jT5E-5DmICg9khdhvH2C2tQh7zTnVFM-YLP_B"'
+            // Note: It is a good idea to provide matchingFallbacks for the new buildType you create to prevent build issues
+            // Add the following line if not already there
+            matchingFallbacks = ['release']
+        }
 
         release {
-
+            buildConfigField "String", "CODEPUSH_KEY",  '"jT5E-5DmICg9khdhvH2C2tQh7zTnVFM-YLP_B"'
+            // Caution! In production, you need to generate your own keystore file.
+            // see https://reactnative.dev/docs/signed-apk-android.
             signingConfig signingConfigs.release
             minifyEnabled enableProguardInReleaseBuilds
             proguardFiles getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro"
              
+             //OUTPUT APK TO CUSTOM DIR AND WITH CUSTOM NAME
+              applicationVariants.all { variant ->
+                variant.outputs.all { output ->
+                        def relativeRootDir = output.packageApplication.outputDirectory.toPath()
+                                .relativize(rootDir.toPath()).toFile()
+                        output.outputFileName = new File( "$relativeRootDir/release", appname+ "-" + defaultConfig.versionName + ".apk" )
+                    }
 
+            }
         }
     }
 
