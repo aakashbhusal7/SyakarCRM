@@ -1,0 +1,40 @@
+{
+    "project_info": {
+      "project_number": "669796187576",
+      "firebase_url": "https://hondacrm-e7c29.firebaseio.com",
+      "project_id": "hondacrm-e7c29",
+      "storage_bucket": "hondacrm-e7c29.appspot.com"
+    },
+    "client": [
+      {
+        "client_info": {
+          "mobilesdk_app_id": "1:669796187576:android:9c5f048fc152b1a90c634d",
+          "android_client_info": {
+            "package_name": "com.hondacrm"
+          }
+        },
+        "oauth_client": [
+          {
+            "client_id": "669796187576-9548svaep3bo7n76ai8u5ru6mufkii3a.apps.googleusercontent.com",
+            "client_type": 3
+          }
+        ],
+        "api_key": [
+          {
+            "current_key": "AIzaSyB3HjB0jkbCn-YAAmDVBdwNEfyHxNQZ7uo"
+          }
+        ],
+        "services": {
+          "appinvite_service": {
+            "other_platform_oauth_client": [
+              {
+                "client_id": "669796187576-9548svaep3bo7n76ai8u5ru6mufkii3a.apps.googleusercontent.com",
+                "client_type": 3
+              }
+            ]
+          }
+        }
+      }
+    ],
+    "configuration_version": "1"
+  }
