@@ -1,11 +1,8 @@
 module.exports = {
-  assets: ['./src/Assets/fonts'],
-  dependencies: {
-    'react-native-code-push': {
-      platforms: {
-        ios: null,
-        android: null,
-      },
-    },
+  project: {
+    ios: {},
+    android: {}, // grouped into "project"
   },
+  assets: ['./src/Assets/fonts'],
+ 
 };

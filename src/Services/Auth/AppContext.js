@@ -3,7 +3,6 @@ import {Alert} from 'react-native';
 import {APP_STATE} from '../../Constants';
 import {resetLoginCredentials} from '../Keychain';
 import {useStoreActions, useStoreState} from 'easy-peasy';
-import useCheckVersion from '../CheckVersion';
 
 const AppStateContext = React.createContext();
 
@@ -17,7 +16,6 @@ export const AppContextProvider = props => {
     setState: actions.login.changeAppState,
     checkLogin: actions.login.checkLogin,
   }));
-  useCheckVersion();
   const state = useStoreState(store => store.login.appstate);
 
   const _logoutUser = useCallback(async () => {
