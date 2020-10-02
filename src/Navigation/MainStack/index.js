@@ -8,6 +8,7 @@ import metrics from '../../Themes/Metrics';
 import LeadForm from '../../Screens/Lead/LeadForm';
 import Login from '../../Screens/Login';
 import { useStoreState } from 'easy-peasy';
+import { NavigationContainer } from '@react-navigation/native';
 
 const Drawer = createDrawerNavigator();
 
@@ -20,6 +21,7 @@ export default props => {
   }));
 
   return (
+    <NavigationContainer independent={true}>
     <Drawer.Navigator
     
       drawerPosition={'left'}
@@ -36,5 +38,6 @@ export default props => {
       <Drawer.Screen name={Routes.HOME_STACK} component={MainStack} />
       <Drawer.Screen name={Routes.LEAD_SCREEN}component={LeadForm}/>
     </Drawer.Navigator>
+    </NavigationContainer>
   );
 };

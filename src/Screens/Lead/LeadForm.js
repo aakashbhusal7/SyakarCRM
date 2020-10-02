@@ -21,8 +21,10 @@ import { CityConstants } from '../../Utils/LeadFormConstants/CityConstants';
 import { CurrentVehicleConstants } from '../../Utils/LeadFormConstants/CurrentVehicleConstants';
 import { ChooseReasonConstants } from '../../Utils/LeadFormConstants/ChooseReasonConstants';
 import { RejectReasonConstants } from '../../Utils/LeadFormConstants/RejectReasonConstants';
-import { showSuccessToast } from '../../Lib/Toast';
+import { showErrorToast, showSuccessToast } from '../../Lib/Toast';
 import Fonts from '../../Themes/Fonts';
+import { AgileCategoryConstants } from '../../Utils/LeadFormConstants/AgileCategoryConstants';
+import Routes from '../../Navigation/Routes';
 
 var productList = [];
 var colorList=[];
@@ -195,6 +197,7 @@ const validationSchema = yup.object().shape({
               leadNature: undefined,
               currentVehicle:undefined,
               city:undefined,
+              agileCategory:undefined,
               leadSource: undefined,
               firstName:undefined,
               lastName:undefined,
@@ -260,7 +263,7 @@ const validationSchema = yup.object().shape({
                 value:object.productid
             }));
           
-    
+            
                console.log("product list is",productDataItems);
         }
     
@@ -298,17 +301,17 @@ const validationSchema = yup.object().shape({
                  }
                  colorList=[];
         }
+       
     
+       
 
         const onFormSubmit = (values) => {
-            firstName = values.firstName;
-            lastName = values.lastName;
-            phoneNumber = values.phoneNumber;
-
            
             postForm(dataOptionSet.leadNature,
                 dataOptionSet.leadSource,
-                values.firstName+' '+values.lastName,
+                dataOptionSet.agileCategory,
+                values.firstName,
+                values.lastName,
                 values.phoneNumber,
                 values.emailAddress,
                 values.street,
@@ -319,16 +322,19 @@ const validationSchema = yup.object().shape({
                 dataOptionSet.reasonToReject
                 );
     
-            console.log("Form submitted successfully");
         }
 
-        const postForm=(leadNature,leadSource,fullName,phonenumber,email,street,city,currentVehicle,previousModel,chooseReason,rejectReason)=>{
+        const postForm=(leadNature,leadSource,agileCategory,firstName,lastName,phonenumber,email,street,city,currentVehicle,previousModel,chooseReason,rejectReason)=>{
             let requestBody;
             if(colorDataItems.length!=0){
                 requestBody=JSON.stringify({
+                    subject:'Interested in '+AgileCategoryConstants[agileCategory-1].label,
                     new_leadnature:leadNature,
                         leadsourcecode:leadSource,
-                        fullname:fullName,
+                        agile_catogeries:agileCategory,
+                        firstname:firstName,
+                        lastname:lastName,
+                        fullname:firstName+' '+lastName,
                         mobilephone:phonenumber,
                         emailaddress1:email,
                         address1_name:street,
@@ -344,9 +350,13 @@ const validationSchema = yup.object().shape({
              
             else{
                 requestBody=JSON.stringify({
+                    subject:'Interested in '+AgileCategoryConstants[agileCategory-1].label,
                     new_leadnature:leadNature,
                         leadsourcecode:leadSource,
-                        fullname:fullName,
+                        agile_catogeries:agileCategory,
+                        firstname:firstName,
+                        lastname:lastName,
+                        fullname:firstName+' '+lastName,
                         mobilephone:phonenumber,
                         emailaddress1:email,
                         address1_name:street,
@@ -368,21 +378,31 @@ const validationSchema = yup.object().shape({
               }).then((response)=>{
                   if(response.ok){
                     showSuccessToast("Successfully setup lead form")
+                    navigation.reset({
+                        index:0,
+                        routes:[{name:'LEAD'}]
+                    })
+                    navigation.navigate(Routes.HOME_STACK);
                   }
                   else{
                     console.log('response not ok');
                     console.log(response.status);
-                    console.log(response.body);
+                    showErrorToast("Error while submitting lead form");
+                   response.json().then(value=>{
+                        console.log("error is",value);
+                    })
+                    console.log(response.json());
                   }
               }
               ).catch(error=>{
+                showErrorToast("Error while submitting lead form");
                   console.log("error is",error);
               })
     }
    
-        console.log("selected product is",productsListData)
+        // console.log("selected product is",productsListData)
 
-        console.log("data option set is",dataOptionSet.leadNature);
+        // console.log("data option set is",dataOptionSet.leadNature);
 
         function renderColorView(flag){
             let container;
@@ -430,6 +450,7 @@ const validationSchema = yup.object().shape({
                                 
                             }}
                             onSubmit={onFormSubmit}
+                            
                             validationSchema={validationSchema}>
 
                             {formikProps => (
@@ -474,6 +495,27 @@ const validationSchema = yup.object().shape({
           </View>
           </View>
                                     </View>
+
+                                    <View style={{ flexDirection: 'column'}}>
+                                     <Text style={{marginBottom:-16}}>Categories</Text>
+                                     <View style={dropDownStyleFull}>
+
+                                        <RNPickerSelect
+                                            items={AgileCategoryConstants}
+                                            onValueChange={(value,label) => {
+                                            setDataOptionSet({
+                                                ...dataOptionSet,agileCategory:value,
+                                            });
+                                            }}
+                                            style={pickerSelectStyles}
+                                            value={dataOptionSet.agileCategory}
+                                            useNativeAndroidPickerStyle={false}
+                                        
+                                        />    
+                                        </View>
+                                        </View>
+
+
                                     <View style={{ flexDirection: 'row'  }}>
                                     <View style={{ flexDirection: 'column'}}>
                                      <Text style={{marginBottom:-16}}>Model</Text>
@@ -619,7 +661,7 @@ const validationSchema = yup.object().shape({
                                  
 
                                     <View style={{ marginTop: 8, marginBottom: 16,marginLeft:16,justifyContent:'center',alignItems:'center' }}>
-                                        <View style={{ position: 'absolute', bottom: 0,left:0,right:0 }}></View>
+                                       
                                         <ButtonX
                            
                             dark={true}
