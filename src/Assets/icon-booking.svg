@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="20" height="18" viewBox="0 0 20 18">
+  <defs>
+    <style>
+      .a {
+        fill: #ed1b2e;
+      }
+    </style>
+  </defs>
+  <g transform="translate(-2 -3)">
+    <path class="a" d="M5,3A3.016,3.016,0,0,0,2,6V18a3.016,3.016,0,0,0,3,3H19a3.016,3.016,0,0,0,3-3V6a3.016,3.016,0,0,0-3-3ZM5,5H19a1,1,0,0,1,1,1V18a1,1,0,0,1-1,1H5a1,1,0,0,1-1-1V6A1,1,0,0,1,5,5ZM6,7V9h7V7ZM16,7V9h2V7ZM6,11v2h7V11Zm10,0v2h2V11Zm-3,4v2h5V15Z" />
+  </g>
+</svg>
