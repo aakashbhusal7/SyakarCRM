@@ -1,7 +1,7 @@
 /* eslint-disable react-native/no-inline-styles */
 import React from 'react';
 import {createMaterialBottomTabNavigator} from '@react-navigation/material-bottom-tabs';
-
+import { Image,View } from 'react-native'
 import Routes from '../Routes/index';
 import Home from '../../Screens/Home';
 import App from '../../Screens/App';
@@ -11,6 +11,13 @@ import {createStackNavigator} from '@react-navigation/stack';
 import useAppTheme from '../../Themes/Context';
 import useTranslation from '../../i18n';
 import NavigationStyles from '../../Styles/NavigationStyles';
+import Leads from '../../Screens/Lead/Leads';
+import LeadStack from '../LeadStack';
+import OpportunityStack from '../OpportunityStack';
+import TestRideList from '../../Screens/TestRide/TestRideList';
+import OpportunityForm from '../../Screens/Opportunity/OpportunityForm';
+import TestRideForm from '../../Screens/Opportunity/TestRideForm';
+import TestRideStack from '../TestRideStack';
 
 const HomeStackScreen = () => {
   const {t} = useTranslation();
@@ -93,34 +100,46 @@ function getHomeIcon({focused, color}) {
   return (
     <IconX
       style={{marginBottom: 5}}
-      origin={ICON_TYPE.OCTICONS}
+      origin={ICON_TYPE.MATERIAL_ICONS}
       name={'home'}
       color={color}
     />
   );
 }
 
-function getProfileIcon({focused, color}) {
+function getLeadIcon({focused, color}) {
   return (
     <IconX
       style={{marginBottom: 5}}
-      origin={ICON_TYPE.FEATHER_ICONS}
-      name={'users'}
+      origin={ICON_TYPE.MATERIAL_ICONS}
+      name={'assignment'}
       color={color}
     />
   );
 }
 
-function getNotificationIcon({focused, color}) {
+function getBookingIcon({focused, color}) {
   return (
     <IconX
       style={{marginBottom: 5}}
-      origin={ICON_TYPE.ANT_ICON}
-      name={'notification'}
+      origin={ICON_TYPE.MATERIAL_ICONS}
+      name={'today'}
       color={color}
     />
   );
 }
+
+function getTestRideIcon({focused, color}) {
+  return (
+    <IconX
+      style={{marginBottom: 5}}
+      origin={ICON_TYPE.ICONICONS}
+      name={'bicycle-outline'}
+      color={color}
+    />
+  );
+}
+
 
 const Tab = createMaterialBottomTabNavigator();
 
@@ -145,19 +164,28 @@ const BottomTabs = () => {
       />
       <Tab.Screen
         options={{
-          tabBarIcon: getProfileIcon,
-          title: 'Home',
+          tabBarIcon: getLeadIcon,
+          title: 'Lead',
         }}
-        name={Routes.PROFILE_SCREEN}
-        component={ProfileStackScreen}
+        name={Routes.LEAD_LIST_SCREEN}
+        component={LeadStack}
       />
       <Tab.Screen
         options={{
-          tabBarIcon: getNotificationIcon,
-          title: 'Home',
+          tabBarIcon: getBookingIcon,
+          title: 'Booking',
+          
         }}
-        name={Routes.NOTIFICATION_SCREEN}
-        component={NotificationStackScreen}
+        name={Routes.OPPORTUNITY_SCREEN}
+        component={OpportunityStack}
+      />
+       <Tab.Screen
+        options={{
+          tabBarIcon: getTestRideIcon,
+          title: 'Test Ride',
+        }}
+        name={Routes.TEST_RIDE_FORM_SCREEN}
+        component={TestRideStack}
       />
     </Tab.Navigator>
   );

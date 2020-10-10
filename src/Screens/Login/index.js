@@ -1,8 +1,8 @@
 /* eslint-disable react-native/no-inline-styles */
-import React, {useRef,useState} from 'react';
-import {Text, Keyboard,Image, StyleSheet} from 'react-native';
-import {useStoreState, useStoreActions} from 'easy-peasy';
-import {STATUS} from '../../Constants';
+import React, { useRef, useState } from 'react';
+import { Text, Keyboard, Image, StyleSheet } from 'react-native';
+import { useStoreState, useStoreActions } from 'easy-peasy';
+import { STATUS } from '../../Constants';
 import LoadingActionContainer from '../../Components/LoadingActionContainer';
 import {
   Section,
@@ -14,7 +14,7 @@ import {
 
 import useAppTheme from '../../Themes/Context';
 import useAuth from '../../Services/Auth';
-import {showErrorToast, showInfoToast} from '../../Lib/Toast';
+import { showErrorToast, showInfoToast } from '../../Lib/Toast';
 import BottomPanel from '../../Components/Panel';
 import useTranslation from '../../i18n';
 import Fonts from '../../Themes/Fonts';
@@ -23,30 +23,29 @@ import { ThemeProvider, useNavigation } from '@react-navigation/native';
 import defaultTheme from '../../Themes';
 import colors from '../../Themes/Colors';
 import Routes from '../../Navigation/Routes';
-import {BASE_URL,TOKEN_URL,CONTACTS_ENDPOINT} from 'react-native-dotenv';
+import { BASE_URL, TOKEN_URL, CONTACTS_ENDPOINT } from 'react-native-dotenv';
 import AsyncStorage from '@react-native-community/async-storage';
 import { element } from 'prop-types';
 
-var dataList=[];
+var dataList = [];
 
 export default () => {
   const onChange = useStoreActions(actions => actions.login.onLoginInputChange);
-  const {t} = useTranslation();
+  const { t } = useTranslation();
   //const {login} = useAuth();
-  const {theme} = useAppTheme();
-  const navigation=useNavigation();
+  const { theme } = useAppTheme();
+  const navigation = useNavigation();
 
   const inputUserName = useRef();
   const inputPassword = useRef();
 
   const panelRef = useRef();
-  const[data,setData]=useState();
+  const [data, setData] = useState();
 
   const onSubmit = () => {
     inputPassword.current.focus();
   };
-
-  const {username, password, status} = useStoreState(state => ({
+  const { username, password, status } = useStoreState(state => ({
     username: state.login.username,
     password: state.login.password,
     status: state.login.status,
@@ -61,136 +60,136 @@ export default () => {
     if (!username || !password) {
       showInfoToast('Username and password are mandatory, try again !');
     }
-    else{
+    else {
 
-    login({
-      username,
-      password,
-    });
-  }
+      login({
+        username,
+        password,
+      });
+    }
   };
 
   let details = {
     'client_id': '857ea913-8527-4604-97ef-2b315dfc2c5e',
     'Resource': 'https://syakarhonda.crm5.dynamics.com',
-    'Grant_type':'client_credentials',
-    'Client_secret':'Kx~CYNRrc_GCupCh.Q~Q-545Ym_xf4l39E'
-};
-let formBody = [];
-for (let property in details) {
+    'Grant_type': 'client_credentials',
+    'Client_secret': 'Kx~CYNRrc_GCupCh.Q~Q-545Ym_xf4l39E'
+  };
+  let formBody = [];
+  for (let property in details) {
     let encodedKey = encodeURIComponent(property);
     let encodedValue = encodeURIComponent(details[property]);
     formBody.push(encodedKey + "=" + encodedValue);
-}
-formBody = formBody.join("&");
+  }
+  formBody = formBody.join("&");
 
-  const login=(props)=>{
-    fetch(TOKEN_URL,{
-      method:'POST',
-      headers:{
+  const login = (props) => {
+    fetch(TOKEN_URL, {
+      method: 'POST',
+      headers: {
         'Content-Type': 'application/x-www-form-urlencoded'
       },
-      body:formBody
-    }).then((response)=>response.json())
-    .then((responseData)=>{
-      {storeToken(responseData.access_token,props.username)}
-      console.log("Response data is"+responseData.access_token);
-      {stepToSignIn(responseData.access_token,props)}
-    })
+      body: formBody
+    }).then((response) => response.json())
+      .then((responseData) => {
+        { storeToken(responseData.access_token, props.username) }
+        console.log("Response data is" + responseData.access_token);
+        { stepToSignIn(responseData.access_token, props) }
+      })
   }
 
-  const storeToken=async(token,username)=>{
-    try{
-      await AsyncStorage.setItem('@token_key',token);
-      await AsyncStorage.setItem('@username',username);
-     
-    }catch(e){
-      
+  const storeToken = async (token, username) => {
+    try {
+      await AsyncStorage.setItem('@token_key', token);
+      await AsyncStorage.setItem('@username', username);
+
+    } catch (e) {
+
       showInfoToast(e)
     }
   }
 
-  const stepToSignIn=(token,otherProps)=>{
-    fetch(BASE_URL+CONTACTS_ENDPOINT,{
-      method:'GET',
-      headers:{
-        'Authorization': 'Bearer '+token,
+  const stepToSignIn = (token, otherProps) => {
+    fetch(BASE_URL + CONTACTS_ENDPOINT, {
+      method: 'GET',
+      headers: {
+        'Authorization': 'Bearer ' + token,
         'Accept': 'application/json',
         'Content-Type': 'application/json',
       }
-      
-    }).then((response)=>response.json())
-    .then((responseJson)=>{
-      responseJson.value.forEach(items=>dataList.push(items))
-      dataList.push(responseJson.value);
-      console.log("Data is",dataList[0].firstname);
-      {checkAuth(otherProps)}
-    })
+
+    }).then((response) => response.json())
+      .then((responseJson) => {
+        responseJson.value.forEach(items => dataList.push(items))
+        dataList.push(responseJson.value);
+        console.log("Data is", dataList[0].firstname);
+        { checkAuth(otherProps) }
+      })
   }
-  const checkAuth=(props)=>{
-    let contains=false;
-    console.log("props is",props.username);
-    const finalData=dataList.map(item=>item.firstname+item.agile_password).find(item=>item===props.username+props.password)
-    
-    if(finalData===props.username+props.password){
-      navigation.navigate(Routes.MAIN_APP,{username:username})
+  const checkAuth = (props) => {
+    let contains = false;
+    console.log("props is", props.username);
+    const finalData = dataList.map(item => item.firstname + item.agile_password).find(item => item === props.username + props.password)
+
+    if (finalData === props.username + props.password) {
+      navigation.navigate(Routes.MAIN_APP, { username: username })
     }
-    else{
+    else {
       showErrorToast("Wrong Credentials!! Please Try Again");
     }
     console.log(finalData)
-    
-    
+
+
     console.log(contains);
-   
-    
+
+
   }
   const loading = status === STATUS.FETCHING;
 
   return (
     <Container>
       <LoadingActionContainer>
-        <View style={{ marginTop:40,justifyContent:'center',alignSelf:'center'}}>
-        <Image
-                    style={{ height: 12, width: 150, padding: 16, marginTop: 36 }}
-                    source={require('../../../assets/app_logo.png')}
-                />
-          
+        <View style={{ marginTop: 40, justifyContent: 'center', alignSelf: 'center' }}>
+          <Image
+            style={{ height: 12, width: 150, padding: 16, marginTop: 36 }}
+            source={require('../../../assets/app_logo.png')}
+          />
+
         </View>
-        <View style={{marginTop:24}}>
-        <Section>
-          <InputX
-            label="USER NAME"
-            // mode="outlined"
-            ref={inputUserName}
-            style={{backgroundColor: '#fafafa'}}
-            autoCapitalize="none"
-            returnKeyType={'next'}
-            onSubmitEditing={onSubmit}
-            onChangeText={text =>
-              onChange({
-                key: 'username',
-                value: text,
-              })
-            }
-            value={username}
-          />
-          <PasswordInputX
-            ref={inputPassword}
-            value={password}
-            // mode="outlined"
-            style={{backgroundColor: '#fafafa'}}
-            label="PASSWORD"
-            returnKeyType={'go'}
-            onSubmitEditing={loginUser}
-            onChangeText={text =>
-              onChange({
-                key: 'password',
-                value: text,
-              })
-            }
-          />
-        </Section>
+        <View style={{ marginTop: 24 }}>
+          <Section>
+            <InputX
+              label="USER NAME"
+              // mode="outlined"
+              ref={inputUserName}
+              style={{ backgroundColor: '#fafafa' }}
+              autoCapitalize="none"
+              returnKeyType={'next'}
+              onSubmitEditing={onSubmit}
+              onChangeText={text =>
+                onChange({
+                  key: 'username',
+                  value: text,
+                })
+              }
+              value={username}
+            />
+            <PasswordInputX
+              ref={inputPassword}
+              value={password}
+              // mode="outlined"
+              style={{ backgroundColor: '#fafafa' }}
+              label="PASSWORD"
+              returnKeyType={'go'}
+              onSubmitEditing={loginUser}
+              onChangeText={text =>
+                onChange({
+                  key: 'password',
+                  value: text,
+                })
+              }
+            />
+          </Section>
         </View>
         <Section>
           <ButtonX
@@ -201,22 +200,23 @@ formBody = formBody.join("&");
             onPress={loginUser}
             label={t('login')}
           />
-          <Text style={{justifyContent:'center',
-          alignSelf:'center',
-          marginTop:16,
-          fontFamily:Fonts.type.bold,
-          color:defaultTheme.colors.primary
-          
-          }}>Or</Text>
-          <View style={{marginTop:-16}}>
+          <Text style={{
+            justifyContent: 'center',
+            alignSelf: 'center',
+            marginTop: 16,
+            fontFamily: Fonts.type.bold,
+            color: defaultTheme.colors.primary
 
-          <ButtonX
-          color={colors.black}
-          
-            mode={'text'}
-            onPress={() => navigation.navigate(Routes.SIGNUP_SCREEN)}
-            label=" SIGN UP "
-          />
+          }}>Or</Text>
+          <View style={{ marginTop: -16 }}>
+
+            <ButtonX
+              color={colors.black}
+
+              mode={'text'}
+              onPress={() => navigation.navigate(Routes.SIGNUP_SCREEN)}
+              label=" SIGN UP "
+            />
           </View>
         </Section>
       </LoadingActionContainer>
@@ -226,7 +226,7 @@ formBody = formBody.join("&");
   );
 };
 const styles = StyleSheet.create({
- ovalButton:{
-   borderRadius:24
- } 
+  ovalButton: {
+    borderRadius: 24
+  }
 })

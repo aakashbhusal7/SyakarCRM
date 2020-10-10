@@ -15,7 +15,7 @@ export default function showToast(message, type, duration = 2000) {
         type == 'success'
           ? colors.androidGreen
           : type == 'error'
-          ? colors.rustyRed
+          ? colors.red100
           : type == 'info'
           ? colors.tiffanyBlue
           : 'white',

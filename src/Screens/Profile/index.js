@@ -1,13 +1,13 @@
 /* eslint-disable react-native/no-inline-styles */
 import React from 'react';
-import {Text} from 'react-native';
+import { Text } from 'react-native';
 import LoadingActionContainer from '../../Components/LoadingActionContainer';
-import {Container} from '../../Components';
+import { Container } from '../../Components';
 import NavigationStyles from '../../Styles/NavigationStyles';
 import useAppTheme from '../../Themes/Context';
 
-const MainScreen = ({navigation}) => {
-  const {theme} = useAppTheme();
+const MainScreen = ({ navigation }) => {
+  const { theme } = useAppTheme();
 
   return (
     <LoadingActionContainer fixed>
@@ -16,7 +16,7 @@ const MainScreen = ({navigation}) => {
           justifyContent: 'center',
           padding: 20,
         }}>
-        <Text style={{fontSize: 20, padding: 20, textAlign: 'center'}}>
+        <Text style={{ fontSize: 20, padding: 20, textAlign: 'center' }}>
           Profile Screen
         </Text>
       </Container>
@@ -24,18 +24,18 @@ const MainScreen = ({navigation}) => {
   );
 };
 
-MainScreen.navigationOptions = ({navigation, screenProps}) => {
-  const {theme} = screenProps;
+MainScreen.navigationOptions = ({ navigation, screenProps }) => {
+  const { theme } = screenProps;
   return {
     headerStyle: [
       NavigationStyles.header_statusBar,
-      {backgroundColor: theme.colors.header},
+      { backgroundColor: theme.colors.header },
     ],
     headerTitle: 'Profile',
     headerTintColor: theme.colors.headerTitle,
     headerTitleStyle: [
       NavigationStyles.headerTitle,
-      {color: theme.colors.headerTitle},
+      { color: theme.colors.headerTitle },
     ],
   };
 };

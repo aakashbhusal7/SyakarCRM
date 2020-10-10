@@ -10,6 +10,7 @@ const theme = {
     ...DefaultTheme.colors,
     primary: '#ED1B2E',
     accent: '#a5be00',
+    qualify:'#6665DD',
     background: colors.issabeline,
     text: colors.panegrey,
     placeholder: colors.ashgrey,
