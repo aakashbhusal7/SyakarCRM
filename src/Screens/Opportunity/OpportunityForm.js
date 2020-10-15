@@ -18,6 +18,7 @@ import theme from '../../Themes/configs/default';
 import { ICON_TYPE } from '../../Icons';
 import DatePickerComponent from '../../Components/DatePickerComponent';
 import { TouchableOpacity } from 'react-native-gesture-handler';
+import { ProgressSteps, ProgressStep } from 'react-native-progress-steps';
 
 var width = Dimensions.get('window').width;
 
@@ -163,6 +164,8 @@ const OpportunityForm = (props) => {
     let modelName = '';
     let colorName = '';
     let email = '';
+    let productId='';``
+    let opportunityId='';
 
     if (route.params !== undefined) {
         console.log("first name is", route.params.firstName);
@@ -171,6 +174,9 @@ const OpportunityForm = (props) => {
         modelName = route.params.model;
         colorName = route.params.color;
         email = route.params.email;
+        productId=route.params.productId;
+        opportunityId=route.params.opportunityId;
+        console.log("OPPORTUNITY ID IS",opportunityId);
     } else {
         console.log('reached here');
     }
@@ -220,7 +226,7 @@ const OpportunityForm = (props) => {
         if (checked == 1) {
             element = (
                 <View>
-                    <DatePickerComponent  getData={(data) => { setStartDate(data) }} />
+                    {/* <DatePickerComponent  getData={(data) => { setStartDate(data) }} />
                     <TouchableOpacity onPress={<DatePickerComponent/>}>
                     <StyledInput
                         passedValue={startDate}
@@ -228,7 +234,12 @@ const OpportunityForm = (props) => {
                         formikProps={props}
                         formikKey="followUpDate"
                     />
-                    </TouchableOpacity>
+                    </TouchableOpacity> */}
+                    <StyledInput
+                        label="Follow Up Date"
+                        formikProps={props}
+                        formikKey="followUpDate"
+                    />
                     <StyledInput
                         label="Follow Up Time"
                         formikProps={props}
@@ -251,7 +262,7 @@ const OpportunityForm = (props) => {
             console.log('here');
             navigation.navigate(Routes.TEST_RIDE_FORM_SCREEN, { "flag": 2, email: email, subject: modelName });
         } else if (interest == 1) {
-            navigation.navigate(Routes.BOOKING_FORM_SCREEN);
+            navigation.navigate(Routes.BOOKING_FORM_SCREEN,{"flag":1,productId:productId,opportunityId:opportunityId,productName:modelName});
         }
         console.log("here");
 
@@ -260,12 +271,31 @@ const OpportunityForm = (props) => {
     return (
         <SafeAreaView style={{ width: '100%', flex: 1, backgroundColor: '#ffffff' }}>
             <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
-
+        
             <View style={{ backgroundColor: '#ffffff', marginTop: 24, flex: 1 }}>
 
                 <View style={styles.body}>
                     <HeaderText>Opportunity</HeaderText>
                 </View>
+                <View style={{marginBottom:82,paddingBottom:16}}>
+                <ProgressSteps 
+                        style={{flex:1}}
+                      topOffset={10}
+                       activeStepIconBorderColor="red" 
+                       completedProgressBarColor="red"
+                       activeLabelColor="red" 
+                       activeStep={1}>
+                           <ProgressStep label="Lead Info" nextBtnText="" previousBtnText="" removeBtnRow={true}>
+                               
+                           </ProgressStep>
+                           <ProgressStep label="Opportunity" nextBtnText="" previousBtnText=""removeBtnRow={true}>
+                              
+                           </ProgressStep>
+                           <ProgressStep label="Confirm" nextBtnText="" previousBtnText="" finishBtnText=""removeBtnRow={true}>
+                               
+                           </ProgressStep>
+                       </ProgressSteps>
+                       </View>
                 <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
 
                     <Formik

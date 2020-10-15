@@ -27,12 +27,15 @@ import { LeadSourceConstants } from '../../Utils/LeadFormConstants/LeadSourceCon
 import { RejectReasonConstants } from '../../Utils/LeadFormConstants/RejectReasonConstants';
 import { OccupationConstants } from '../../Utils/OccupationConstants';
 import { RidingConstants } from '../../Utils/RidingConstants';
+import { ProgressSteps, ProgressStep } from 'react-native-progress-steps';
+import AnimatedLoader from "react-native-animated-loader";
 
 var productList = [];
 var colorList = [];
 var productDataItems = [];
 var colorDataItems = [];
 
+var dataList = [];
 
 var width = Dimensions.get('window').width;
 
@@ -251,6 +254,7 @@ const LeadForm = (props) => {
         reasonToReject: undefined,
     });
     const [token, setToken] = useState();
+    const [contactKey, setContactKey] = useState();
     const [productsListData, setProductsListData] = useState([
 
     ]);
@@ -262,6 +266,7 @@ const LeadForm = (props) => {
     const [checked, setChecked] = useState(GenderConstants[0].value);
     const [formSuccess, setFormSuccess] = useState(false);
     const [qualify, setQualify] = useState(false);
+    const [loading, setLoading] = useState(false);
 
     React.useEffect(() => {
         const _toggleDrawer = () => {
@@ -294,6 +299,11 @@ const LeadForm = (props) => {
 
     }, [])
 
+    React.useEffect((async) => {
+        retrieveContactId();
+
+    }, [])
+
     React.useEffect(() => {
         fetchColorData(token);
 
@@ -306,14 +316,23 @@ const LeadForm = (props) => {
                 setToken(value);
                 fetchProducts(value);
                 console.log("token is= " + value);
+
             }
         } catch (error) {
             console.log("error is", error);
         }
     }
 
-
-
+    async function retrieveContactId() {
+        try {
+            const contactId = await AsyncStorage.getItem('@contactId');
+            if (contactId !== null) {
+                setContactKey(contactId);
+            }
+        } catch (error) {
+            console.log("error is", error);
+        }
+    }
 
     async function fetchProducts(token) {
         console.log("token is", token);
@@ -388,6 +407,7 @@ const LeadForm = (props) => {
         } else if (dataOptionSet.agileCategory == undefined) {
             showErrorToast("Categories not selected")
         } else {
+            setLoading(true);
             postForm(dataOptionSet.leadNature,
                 dataOptionSet.leadSource,
                 dataOptionSet.agileCategory,
@@ -443,7 +463,8 @@ const LeadForm = (props) => {
                 agile_reasontochoose: chooseReason,
                 agile_reasonforleaving: rejectReason,
                 'agile_InterestedModel@odata.bind': "/products(" + productsListData + ")",
-                'agile_Colors@odata.bind': "/agile_colorses(" + colorsListData + ")"
+                'agile_Colors@odata.bind': "/agile_colorses(" + colorsListData + ")",
+                'agile_SalePerson@odata.bind': "/contacts(" + contactKey + ")",
             })
         }
 
@@ -473,7 +494,8 @@ const LeadForm = (props) => {
                 new_previousbikemodel: previousModel,
                 agile_reasontochoose: chooseReason,
                 agile_reasonforleaving: rejectReason,
-                'agile_InterestedModel@odata.bind': "/products(" + productsListData + ")"
+                'agile_InterestedModel@odata.bind': "/products(" + productsListData + ")",
+                'agile_SalePerson@odata.bind': "/contacts(" + contactKey + ")",
             })
         }
         fetch(BASE_URL + LEADS_ENDPOINT, {
@@ -485,21 +507,26 @@ const LeadForm = (props) => {
             body: requestBody
         }).then((response) => {
             if (response.ok) {
+                setLoading(false);
                 showSuccessToast("Successfully setup lead form")
                 if (qualify) {
-                    goToQualifyProcess(response.headers.map.location, firstName, lastName, email, productName, colorName);
+                    setLoading(true);
+                    goToQualifyProcess(response.headers.map.location, firstName, lastName, email, productName, colorName, productsListData);
                 } else {
+                    setLoading(false);
                     console.log("reset")
                     setFormSuccess(true);
+                    navigation.navigate(Routes.HOME_SCREEN)
                     navigation.reset({
                         index: 0,
-                        routes: [{ name: 'LEAD' }]
+                        routes: [{ name: 'HOME' }]
                     })
+                    
                     productList.length = 0;
-                    navigation.navigate(Routes.HOME_STACK);
                 }
             }
             else {
+                setLoading(false);
                 console.log('response not ok');
                 console.log(response.status);
                 showErrorToast("Error while submitting lead form");
@@ -519,9 +546,9 @@ const LeadForm = (props) => {
 
     // console.log("data option set is",dataOptionSet.leadNature);
 
-    function goToQualifyProcess(url, firstName, lastName, email, product, color) {
+    function goToQualifyProcess(url, firstName, lastName, email, product, color, productId) {
         let errorMessage = '';
-        console.log("passed props is", url + firstName + lastName + product + color);
+        console.log("passed props is", url + firstName + lastName + product + color + productId);
         fetch(url + QUALIFY_ENDPOINT, {
             method: 'POST',
             headers: {
@@ -535,18 +562,32 @@ const LeadForm = (props) => {
             })
         }).then((response) => {
             if (response.ok) {
-                showSuccessToast("Lead qualified success");
-                productList.length = 0;
-                props.navigation.navigate(Routes.OPPORTUNITY_SCREEN, route.params = {
-                    firstName: firstName,
-                    lastName: lastName,
-                    email: email,
-                    model: product,
-                    color: color != undefined ? color : ''
-                });
+              
+
+                response.json().then((responseJson) => {
+                    responseJson.value.forEach(items => dataList.push(items))
+                     let opportunityid=dataList[1].opportunityid;
+                     setLoading(false);
+                     showSuccessToast("Lead qualified success");
+                     productList.length = 0;
+                     props.navigation.navigate(Routes.OPPORTUNITY_SCREEN, route.params = {
+                         firstName: firstName,
+                         lastName: lastName,
+                         email: email,
+                         productId: productId,
+                         opportunityId:opportunityid,
+                         model: product,
+                         color: color != undefined ? color : ''
+                     });
+                })
+          
             }
             else {
-
+                setLoading(false)
+                if (response.status == 401) {
+                    showErrorToast("User session expired!")
+                    navigation.navigate(Routes.LOGIN_STACK);
+                }
                 response.json().then((body) => {
                     errorMessage = body.error.message;
                     showErrorToast(errorMessage);
@@ -566,7 +607,7 @@ const LeadForm = (props) => {
         if (flag) {
             container = (
                 <View style={{ flexDirection: 'column' }}>
-                    <Text style={{ marginBottom: -16, marginLeft: 24, marginTop: 8,fontSize:14,lineHeight:16,color: '#333333' }}>Color</Text>
+                    <Text style={{ marginBottom: -16, marginLeft: 24, marginTop: 16, fontSize: 14, lineHeight: 16, color: '#333333' }}>Color</Text>
                     <View style={dropDownStyleColor}>
                         <RNPickerSelect
                             items={colorDataItems}
@@ -633,7 +674,7 @@ const LeadForm = (props) => {
             element = (
                 <View >
                     <View style={{ flexDirection: 'column', marginTop: 8 }}>
-                        <Text style={{ marginBottom: -16,fontSize:14,lineHeight:16,color: '#333333' }}>Riding For</Text>
+                        <Text style={{ marginBottom: -16, fontSize: 14, lineHeight: 16, color: '#333333' }}>Riding For</Text>
                         <View style={dropDownStyleFull}>
 
                             <RNPickerSelect
@@ -710,16 +751,45 @@ const LeadForm = (props) => {
     }
 
     return (
-        <SafeAreaView style={{ width: '100%', flex: 1, backgroundColor: '#ffffff' }}>
+        <SafeAreaView style={{ width: '100%', flex: 1,backgroundColor:"#ffffff" }}>
 
             <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
-            <ScrollView showsVerticalScrollIndicator={false}>
-                <View style={{ backgroundColor: '#ffffff', marginTop: 24 }}>
-                    <ScrollView>
-                        <View style={styles.body}>
-                            <HeaderText>New Lead</HeaderText>
-                        </View>
+            {loading &&
+                <AnimatedLoader
+                    visible={true}
+                    overlayColor="rgba(255,255,255,0.95)"
+                    source={require("../../../loader.json")}
+                    animationStyle={styles.lottie}
+                    speed={1}
+                />
+            }
+            {!loading &&
 
+                <View style={{ backgroundColor: '#ffffff', marginTop: 24, flex: 1 }}>
+
+                    <View style={styles.body}>
+                        <HeaderText>New Lead</HeaderText>
+                    </View>
+                    <View style={{ marginBottom: 82, paddingBottom: 16 }}>
+                        <ProgressSteps
+
+                            topOffset={10}
+                            activeStepIconBorderColor="red"
+                            completedProgressBarColor="red"
+                            activeLabelColor="red"
+                            activeStep={0}>
+                            <ProgressStep label="Lead Info" nextBtnText="" previousBtnText="" removeBtnRow={true}>
+
+                            </ProgressStep>
+                            <ProgressStep label="Opportunity" nextBtnText="" previousBtnText="" removeBtnRow={true}>
+
+                            </ProgressStep>
+                            <ProgressStep label="Confirm" nextBtnText="" previousBtnText="" finishBtnText="" removeBtnRow={true}>
+
+                            </ProgressStep>
+                        </ProgressSteps>
+                    </View>
+                    <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
 
                         <Formik
                             initialValues={{
@@ -736,11 +806,11 @@ const LeadForm = (props) => {
                             validationSchema={validationSchema}>
 
                             {formikProps => (
-                                <SafeAreaView style={{ marginLeft: 16, marginTop: 13 }}>
+                                <SafeAreaView style={{ marginLeft: 16, marginTop: 13, flex: 1 }}>
 
                                     <View style={{ flexDirection: 'row' }}>
                                         <View style={{ flexDirection: 'column' }}>
-                                            <Text style={{ marginBottom: -16,fontSize:14,lineHeight:16,color: '#333333' }}>Lead Nature</Text>
+                                            <Text style={{ marginBottom: -16, fontSize: 14, lineHeight: 16, color: '#333333' }}>Lead Nature</Text>
                                             <View style={dropDownStyle}>
                                                 <RNPickerSelect
 
@@ -759,7 +829,7 @@ const LeadForm = (props) => {
                                         </View>
 
                                         <View style={{ flexDirection: 'column' }}>
-                                            <Text style={{ marginBottom: -16,fontSize:14,lineHeight:16,color: '#333333' }}>Lead Source</Text>
+                                            <Text style={{ marginBottom: -16, fontSize: 14, lineHeight: 16, color: '#333333' }}>Lead Source</Text>
                                             <View style={dropDownStyle}>
                                                 <RNPickerSelect
 
@@ -783,7 +853,7 @@ const LeadForm = (props) => {
                                     </View>
 
                                     <View style={{ flexDirection: 'column' }}>
-                                        <Text style={{ marginBottom: -16, marginTop: 8,fontSize:14,lineHeight:16,color: '#333333' }}>Categories</Text>
+                                        <Text style={{ marginBottom: -16, marginTop: 8, fontSize: 14, lineHeight: 16, color: '#333333' }}>Categories</Text>
                                         <View style={dropDownStyleFull}>
 
                                             <RNPickerSelect
@@ -804,7 +874,7 @@ const LeadForm = (props) => {
 
                                     <View style={{ flexDirection: 'row' }}>
                                         <View style={{ flexDirection: 'column' }}>
-                                            <Text style={{ marginBottom: -16, marginTop: 16 ,fontSize:14,lineHeight:16,color: '#333333'}}>Model</Text>
+                                            <Text style={{ marginBottom: -16, marginTop: 16, fontSize: 14, lineHeight: 16, color: '#333333' }}>Model</Text>
                                             <View style={dropDownStyleModel}>
                                                 <RNPickerSelect
                                                     items={productDataItems}
@@ -849,7 +919,7 @@ const LeadForm = (props) => {
                                     </View>
 
 
-                                    <View style={{ flexDirection: 'row',marginTop:8 }}>
+                                    <View style={{ flexDirection: 'row', marginTop: 8 }}>
                                         <StyledInput
                                             label="First Name"
                                             formikProps={formikProps}
@@ -874,7 +944,7 @@ const LeadForm = (props) => {
                                     />
 
                                     <View style={{ flexDirection: 'column', marginBottom: 16 }}>
-                                        <Text style={{ marginBottom: -16,fontSize:14,lineHeight:16,color: '#333333' }}>Occupation</Text>
+                                        <Text style={{ marginBottom: -16, fontSize: 14, lineHeight: 16, color: '#333333' }}>Occupation</Text>
                                         <View style={dropDownStyleFull}>
 
                                             <RNPickerSelect
@@ -905,7 +975,7 @@ const LeadForm = (props) => {
                                         />
 
                                         <View style={{ flexDirection: 'column' }}>
-                                            <Text style={{ marginBottom: -16,fontSize:14,lineHeight:16,color: '#333333' }}>City</Text>
+                                            <Text style={{ marginBottom: -16, fontSize: 14, lineHeight: 16, color: '#333333' }}>City</Text>
                                             <View style={dropDownStyle}>
 
                                                 <RNPickerSelect
@@ -935,7 +1005,7 @@ const LeadForm = (props) => {
                                     }}>Current Vehicle Information</Text>
 
                                     <View style={{ flexDirection: 'column', marginTop: 24 }}>
-                                        <Text style={{ marginBottom: -16,fontSize:14,lineHeight:16,color: '#333333' }}>Current Bike/Scooter</Text>
+                                        <Text style={{ marginBottom: -16, fontSize: 14, lineHeight: 16, color: '#333333' }}>Current Bike/Scooter</Text>
                                         <View style={dropDownStyleFull}>
 
                                             <RNPickerSelect
@@ -962,7 +1032,7 @@ const LeadForm = (props) => {
                                     </View>
 
                                     <View style={{ flexDirection: 'column' }}>
-                                        <Text style={{ marginBottom: -16,fontSize:14,lineHeight:16,color: '#333333' }}>Reason To Choose</Text>
+                                        <Text style={{ marginBottom: -16, fontSize: 14, lineHeight: 16, color: '#333333' }}>Reason To Choose</Text>
                                         <View style={dropDownStyleFull}>
 
                                             <RNPickerSelect
@@ -980,7 +1050,7 @@ const LeadForm = (props) => {
                                         </View>
                                     </View>
                                     <View style={{ flexDirection: 'column', marginTop: 8 }}>
-                                        <Text style={{ marginBottom: -16,fontSize:14,lineHeight:16,color: '#333333' }}>Reason To Leave</Text>
+                                        <Text style={{ marginBottom: -16, fontSize: 14, lineHeight: 16, color: '#333333' }}>Reason To Leave</Text>
                                         <View style={dropDownStyleFull}>
 
                                             <RNPickerSelect
@@ -1033,7 +1103,7 @@ const LeadForm = (props) => {
                         </Formik>
                     </ScrollView>
                 </View>
-            </ScrollView>
+            }
 
         </SafeAreaView >
     )
@@ -1130,6 +1200,10 @@ const styles = StyleSheet.create({
         marginRight: 12,
         color: 'red'
     },
+    lottie: {
+        width: 100,
+        height: 100
+    },
     dropDownStyle: {
         height: 45,
 
@@ -1154,7 +1228,7 @@ const pickerSelectStyles = StyleSheet.create({
     inputIOS: {
         fontSize: 12,
 
-       
+
         lineHeight: 14,
         marginTop: 2,
         marginBottom: 4,

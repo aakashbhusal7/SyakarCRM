@@ -26,6 +26,8 @@ import Routes from '../../Navigation/Routes';
 import { BASE_URL, TOKEN_URL, CONTACTS_ENDPOINT } from 'react-native-dotenv';
 import AsyncStorage from '@react-native-community/async-storage';
 import { element } from 'prop-types';
+import { TokenContext } from '../App/TokenProvider';
+import AnimatedLoader from "react-native-animated-loader";
 
 var dataList = [];
 
@@ -39,6 +41,8 @@ export default () => {
   const inputUserName = useRef();
   const inputPassword = useRef();
 
+  const tokenStore = React.useContext(TokenContext);
+
   const panelRef = useRef();
   const [data, setData] = useState();
 
@@ -50,9 +54,9 @@ export default () => {
     password: state.login.password,
     status: state.login.status,
   }));
-
+  const[load,setLoad]=React.useState(false);
   const usernameGlobal = React.createContext(username);
-
+  const token = React.useContext(TokenContext)
 
   const loginUser = () => {
     Keyboard.dismiss();
@@ -110,6 +114,7 @@ export default () => {
   }
 
   const stepToSignIn = (token, otherProps) => {
+    setLoad(true);
     fetch(BASE_URL + CONTACTS_ENDPOINT, {
       method: 'GET',
       headers: {
@@ -126,15 +131,28 @@ export default () => {
         { checkAuth(otherProps) }
       })
   }
+
+  const storeContactId = async (value) => {
+    try {
+      await AsyncStorage.setItem('@contactId', value);
+    } catch (e) {
+      console.log("error", e);
+    }
+  }
   const checkAuth = (props) => {
     let contains = false;
     console.log("props is", props.username);
     const finalData = dataList.map(item => item.firstname + item.agile_password).find(item => item === props.username + props.password)
+    dataList.filter(item => item.firstname + item.agile_password === props.username + props.password).map((value) => { storeContactId(value.contactid) });
+    console.log("final data is ", finalData);
+
 
     if (finalData === props.username + props.password) {
+      setLoad(false);
       navigation.navigate(Routes.MAIN_APP, { username: username })
     }
     else {
+      setLoad(false);
       showErrorToast("Wrong Credentials!! Please Try Again");
     }
     console.log(finalData)
@@ -147,79 +165,92 @@ export default () => {
   const loading = status === STATUS.FETCHING;
 
   return (
-    <Container>
-      <LoadingActionContainer>
-        <View style={{ marginTop: 40, justifyContent: 'center', alignSelf: 'center' }}>
-          <Image
-            style={{ height: 12, width: 150, padding: 16, marginTop: 36 }}
-            source={require('../../../assets/app_logo.png')}
-          />
-
-        </View>
-        <View style={{ marginTop: 24 }}>
-          <Section>
-            <InputX
-              label="USER NAME"
-              // mode="outlined"
-              ref={inputUserName}
-              style={{ backgroundColor: '#fafafa' }}
-              autoCapitalize="none"
-              returnKeyType={'next'}
-              onSubmitEditing={onSubmit}
-              onChangeText={text =>
-                onChange({
-                  key: 'username',
-                  value: text,
-                })
-              }
-              value={username}
+    <Container bg="red">
+      {load &&
+      
+        <AnimatedLoader
+          visible={true}
+          overlayColor="transparent"
+          source={require("../../../loader.json")}
+          animationStyle={styles.lottie}
+          speed={1}
+        />
+        
+      }
+      {!load &&
+        <LoadingActionContainer>
+          <View style={{ marginTop: 40, justifyContent: 'center', alignSelf: 'center' }}>
+            <Image
+              style={{ height: 12, width: 150, padding: 16, marginTop: 36 }}
+              source={require('../../../assets/app_logo.png')}
             />
-            <PasswordInputX
-              ref={inputPassword}
-              value={password}
-              // mode="outlined"
-              style={{ backgroundColor: '#fafafa' }}
-              label="PASSWORD"
-              returnKeyType={'go'}
-              onSubmitEditing={loginUser}
-              onChangeText={text =>
-                onChange({
-                  key: 'password',
-                  value: text,
-                })
-              }
-            />
-          </Section>
-        </View>
-        <Section>
-          <ButtonX
-            loading={loading}
-            dark={true}
-            style={styles.ovalButton}
-            color={loading ? "#ED1B2E" : defaultTheme.colors.primary}
-            onPress={loginUser}
-            label={t('login')}
-          />
-          <Text style={{
-            justifyContent: 'center',
-            alignSelf: 'center',
-            marginTop: 16,
-            fontFamily: Fonts.type.bold,
-            color: defaultTheme.colors.primary
 
-          }}>Or</Text>
-          <View style={{ marginTop: -16 }}>
-
-            <ButtonX
-              color={colors.black}
-
-              mode={'text'}
-              onPress={() => navigation.navigate(Routes.SIGNUP_SCREEN)}
-              label=" SIGN UP "
-            />
           </View>
-        </Section>
-      </LoadingActionContainer>
+          <View style={{ marginTop: 24 }}>
+            <Section>
+              <InputX
+                label="USER NAME"
+                // mode="outlined"
+                ref={inputUserName}
+                style={{ backgroundColor: '#fafafa' }}
+                autoCapitalize="none"
+                returnKeyType={'next'}
+                onSubmitEditing={onSubmit}
+                onChangeText={text =>
+                  onChange({
+                    key: 'username',
+                    value: text,
+                  })
+                }
+                value={username}
+              />
+              <PasswordInputX
+                ref={inputPassword}
+                value={password}
+                // mode="outlined"
+                style={{ backgroundColor: '#fafafa' }}
+                label="PASSWORD"
+                returnKeyType={'go'}
+                onSubmitEditing={loginUser}
+                onChangeText={text =>
+                  onChange({
+                    key: 'password',
+                    value: text,
+                  })
+                }
+              />
+            </Section>
+          </View>
+          <Section>
+            <ButtonX
+              loading={loading}
+              dark={true}
+              style={styles.ovalButton}
+              color={loading ? "#ED1B2E" : defaultTheme.colors.primary}
+              onPress={loginUser}
+              label={t('login')}
+            />
+            <Text style={{
+              justifyContent: 'center',
+              alignSelf: 'center',
+              marginTop: 16,
+              fontFamily: Fonts.type.bold,
+              color: defaultTheme.colors.primary
+
+            }}>Or</Text>
+            <View style={{ marginTop: -16 }}>
+
+              <ButtonX
+                color={colors.black}
+
+                mode={'text'}
+                onPress={() => navigation.navigate(Routes.SIGNUP_SCREEN)}
+                label=" SIGN UP "
+              />
+            </View>
+          </Section>
+        </LoadingActionContainer>
+      }
 
       <BottomPanel ref={panelRef} />
     </Container>
@@ -228,5 +259,10 @@ export default () => {
 const styles = StyleSheet.create({
   ovalButton: {
     borderRadius: 24
-  }
+  },
+  lottie: {
+    
+    width: 100,
+    height: 100
+  },
 })

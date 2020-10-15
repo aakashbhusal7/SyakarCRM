@@ -86,6 +86,10 @@ const Content = (props) => {
     props.navigation.navigate(Routes.TEST_RIDE_LIST_SCREEN)
   }
 
+  const booking = () => {
+    props.navigation.navigate(Routes.BOOKING_LIST_SCREEN)
+  }
+
   return (
     <>
       <Item name="Lead" logo={<IconLead />} onPress={lead} />
@@ -93,7 +97,7 @@ const Content = (props) => {
       <SubItem name="Hot Leads" logo={<IconLeadSmall />} />
       <SubItem name="Cold Leads" logo={<IconLeadSmall />} />
       <SubItem name="Warms Leads" logo={<IconLeadSmall />} />
-      <Item name="Booking" logo={<IconBooking />} />
+      <Item name="Booking" logo={<IconBooking />}  onPress={booking} />
       <SubItem name="Active Booking" logo={<IconBookingActive />} />
       <Item name="Follow Up" logo={<IconFollowup />} onPress={followUp} />
       <Item name="Test Ride" logo={<Image style={styles.imageStyle} source={require('../../../assets/logo_car.png')} />} onPress={testRide}/>

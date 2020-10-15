@@ -1,6 +1,7 @@
 import { createStackNavigator } from '@react-navigation/stack';
 import React from 'react';
 import TestRideForm from '../Screens/Opportunity/TestRideForm';
+import TestRideList from '../Screens/TestRide/TestRideList';
 import Routes from './Routes';
 
 const Stack = createStackNavigator();
@@ -12,7 +13,7 @@ export default props => {
 
 
 
-            <Stack.Screen name={Routes.TEST_RIDE_FORM_SCREEN} component={TestRideForm}
+            <Stack.Screen name={Routes.TEST_RIDE_LIST_SCREEN} component={TestRideList}
                 options={{
                     title: 'Menu',
                     headerStyle: {

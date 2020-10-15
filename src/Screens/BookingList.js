@@ -5,18 +5,18 @@ import { BASE_URL, OPPORTUNITY_ENDPOINT } from 'react-native-dotenv';
 import { Card, ListItem, Button, Icon } from 'react-native-elements'
 import { ScrollView } from 'react-native-gesture-handler';
 import AnimatedLoader from "react-native-animated-loader";
-import CardListComponent from '../../Components/CardListComponent';
 import { FAB } from 'react-native-paper';
-import defaultTheme from '../../Themes';
 import { useNavigation, useRoute } from '@react-navigation/native';
-import Routes from '../../Navigation/Routes';
-import theme from '../../Themes/configs/default';
-import { HeaderButton } from '../../Components';
-import { ICON_TYPE } from '../../Icons';
-import HeaderText from '../../Components/HeaderText';
-import { showErrorToast } from '../../Lib/Toast';
+import CardListComponent from '../Components/CardListComponent';
+import theme from '../Themes/configs/default';
+import { ICON_TYPE } from '../Icons';
+import HeaderText from '../Components/HeaderText';
+import { showErrorToast } from '../Lib/Toast';
+import defaultTheme from '../Themes';
+import Routes from '../Navigation/Routes';
+import { HeaderButton } from '../Components';
 
-const FollowUpList = (props) => {
+const BookingList = (props) => {
 
     const navigation = useNavigation();
 
@@ -71,7 +71,7 @@ const FollowUpList = (props) => {
     }
 
     async function _apiCall(value) {
-        const result = await fetch("https://syakarhonda.api.crm5.dynamics.com/api/data/v9.1/opportunities", {
+        const result = await fetch("https://syakarhonda.api.crm5.dynamics.com/api/data/v9.1/opportunities?$filter=agile_interested eq 1", {
             method: 'GET',
             headers: {
                 'Authorization': 'Bearer ' + value,
@@ -88,7 +88,6 @@ const FollowUpList = (props) => {
                 tempList.push({
                     "name": object.name,
                     "email": object.emailaddress,
-                    "followup":object.agile_followuprequired
 
                 })
             );
@@ -116,23 +115,23 @@ const FollowUpList = (props) => {
                 <AnimatedLoader
                     visible={true}
 
-                    source={require("../../../loader.json")}
+                    source={require("../../loader.json")}
                     animationStyle={styles.lottie}
                     speed={1}
                 />
             }
             {!loading &&
                 <View>
-                    <HeaderText>Follow Ups</HeaderText>
+                    <HeaderText>Bookings</HeaderText>
                     <ScrollView style={{ marginBottom: 24 }}>
 
 
                         {
                             leadData !== undefined && leadData.map((u, i) => {
-                                if (u.followup == 1) {
+                                if (u.name !== null) {
                                     return (
 
-                                        <CardListComponent flag="followUp" data={u} key={i} />
+                                        <CardListComponent flag="booking" data={u} key={i} />
 
 
 
@@ -172,4 +171,4 @@ const styles = StyleSheet.create({
     },
 })
 
-export default FollowUpList;
+export default BookingList;

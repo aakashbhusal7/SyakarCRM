@@ -13,6 +13,7 @@ import FollowUpList from '../../Screens/FollowUp/FollowUpList';
 import TestRideList from '../../Screens/TestRide/TestRideList';
 import TestRideForm from '../../Screens/Opportunity/TestRideForm';
 import BookingForm from '../../Screens/Opportunity/BookingForm';
+import BookingList from '../../Screens/BookingList';
 
 const Stack = createStackNavigator();
 const Drawer = createDrawerNavigator();
@@ -82,8 +83,8 @@ export default props => {
         }}
 
       />
-      
-       <Drawer.Screen name={Routes.TEST_RIDE_FORM_SCREEN} component={TestRideForm}
+
+      <Drawer.Screen name={Routes.TEST_RIDE_FORM_SCREEN} component={TestRideForm}
         options={{
           title: 'Menu',
           headerStyle: {
@@ -116,6 +117,16 @@ export default props => {
           fontWeight: 'bold',
         },
       }} />
+      <Drawer.Screen name={Routes.BOOKING_LIST_SCREEN} component={BookingList} options={{
+        title: 'Menu',
+        headerStyle: {
+          backgroundColor: '#f4511e',
+        },
+        headerTintColor: '#fff',
+        headerTitleStyle: {
+          fontWeight: 'bold',
+        },
+      }} />
       <Drawer.Screen name={Routes.FOLLOW_UP_LIST_SCREEN} component={FollowUpList} options={{
         title: 'Menu',
         headerStyle: {
@@ -126,6 +137,9 @@ export default props => {
           fontWeight: 'bold',
         },
       }} />
+
+
+
 
 
 

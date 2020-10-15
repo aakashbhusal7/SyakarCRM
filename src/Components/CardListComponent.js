@@ -6,7 +6,7 @@ import defaultTheme from '../Themes';
 import Fonts from '../Themes/Fonts';
 const CardListComponent = (props) => {
     let element;
-    if (props.flag === "followUp") {
+    if (props.flag === "booking") {
         element = (
             <View >
                 <Card containerStyle={{ borderRadius: 10, opacity: 100, borderWidth: 0 }}>
@@ -34,7 +34,21 @@ const CardListComponent = (props) => {
 
                 </Card>
             </View>);
-    } else {
+    }
+    else if (props.flag === "followUp") {
+        element = (
+            <View >
+                <Card containerStyle={{ borderRadius: 10, opacity: 100, borderWidth: 0 }}>
+
+
+                    <Text style={styles.nameStyle}>{props.data.name}</Text>
+                    <Text style={[styles.subHeaderStyle, { marginTop: 4 }]}>{props.data.email}</Text>
+
+
+                </Card>
+            </View>);
+    }
+    else {
         element = (
             <View >
                 <Card containerStyle={{ borderRadius: 10, opacity: 100, borderWidth: 0 }}>
@@ -66,7 +80,7 @@ const styles = StyleSheet.create({
         color: defaultTheme.colors.primary,
         fontFamily: Fonts.type.secondary,
         fontSize: 12,
-        
+
 
     }
 

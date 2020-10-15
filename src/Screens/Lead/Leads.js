@@ -14,36 +14,38 @@ import theme from '../../Themes/configs/default';
 import { HeaderButton } from '../../Components';
 import { ICON_TYPE } from '../../Icons';
 import HeaderText from '../../Components/HeaderText';
+import { showErrorToast } from '../../Lib/Toast';
 
-const Leads = ({routes,navigation}) => {
+const Leads = ({ routes, navigation }) => {
 
     React.useEffect(() => {
         const _toggleDrawer = () => {
-          navigation.toggleDrawer();
+            navigation.toggleDrawer();
         };
-    
+
         console.log('use effect home');
-    
+
         navigation.setOptions({
-          headerLeft: () => {
-            return (
-              <View style={{marginLeft: 10}}>
-                <HeaderButton
-                  icon="menuunfold"
-                  color={theme.colors.headerTitle}
-                  iconOrigin={ICON_TYPE.ANT_ICON}
-                  onPress={_toggleDrawer}
-                />
-              </View>
-            );
-          },
+            headerLeft: () => {
+                return (
+                    <View style={{ marginLeft: 10 }}>
+                        <HeaderButton
+                            icon="menuunfold"
+                            color={theme.colors.headerTitle}
+                            iconOrigin={ICON_TYPE.ANT_ICON}
+                            onPress={_toggleDrawer}
+                        />
+                    </View>
+                );
+            },
         });
-      }, [navigation, theme.colors.headerTitle]);
+    }, [navigation, theme.colors.headerTitle]);
 
     const [leadData, setLeadData] = React.useState();
-    const [token, setToken] = React.useState();
+    const [token, setToken] = React.useState(undefined);
+    const [contactKey, setContactKey] = React.useState();
     const [loading, setLoadindg] = React.useState(true);
-   // const navigation=useNavigation();
+    // const navigation=useNavigation();
     React.useEffect(() => {
         retrieveToken();
 
@@ -52,14 +54,16 @@ const Leads = ({routes,navigation}) => {
     // React.useEffect(() => {
     //     _apiCall();
     // }, [])
-
+    React.useEffect(() => {
+        retrieveContactId();
+    }, [contactKey])
 
     async function retrieveToken() {
         try {
             const value = await AsyncStorage.getItem('@token_key');
             if (value !== null) {
                 setToken(value);
-                _apiCall();
+
                 console.log("token is= " + value);
             }
         } catch (error) {
@@ -67,29 +71,63 @@ const Leads = ({routes,navigation}) => {
         }
     }
 
-    async function _apiCall() {
-        const result = await fetch(BASE_URL + LEADS_ENDPOINT, {
-            method: 'GET',
-            headers: {
-                'Authorization': 'Bearer ' + token,
-                'Accept': 'application/json',
-                'Content-Type': 'application/json',
+    async function retrieveContactId() {
+        try {
+            const contactId = await AsyncStorage.getItem('@contactId');
+            if (contactId !== null) {
+                setContactKey(contactId);
+                _apiCall();
             }
+        } catch (error) {
+            console.log("error is", error);
+        }
+    }
 
-        });
-        console.log("result is", result.status);
-        const data = await result.json();
-        let tempList = [];
-        data.value.map((object, key) =>
-            tempList.push({
-                "fullname": object.yomifullname,
-                "phone": object.mobilephone,
-                "email": object.emailaddress1,
-                "leadNature": object.new_leadnature,
-            })
-        );
-        setLeadData(tempList);
-        setLoadindg(false);
+    async function _apiCall() {
+        if (token !== undefined) {
+            const result = await fetch(
+                "https://syakarhonda.api.crm5.dynamics.com/api/data/v9.1/leads?$filter=_agile_saleperson_value eq " + contactKey
+                , {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': 'Bearer ' + token,
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json',
+                    }
+
+                });
+            console.log("result is", result.status);
+            if (result.ok) {
+                const data = await result.json();
+                let tempList = [];
+                data.value.map((object, key) =>
+                    tempList.push({
+                        "fullname": object.yomifullname,
+                        "phone": object.mobilephone,
+                        "email": object.emailaddress1,
+                        "leadNature": object.new_leadnature,
+                    })
+                );
+                setLeadData(tempList);
+                setLoadindg(false);
+            }
+            else {
+                setLoadindg(false);
+                setLeadData(undefined);
+                if (result.status == 401) {
+                    showErrorToast("User session expired!")
+                    navigation.reset({
+                        index: 0,
+                        routes: [{ name: ' LOGIN_SCREEN' }],
+                    });
+                } else {
+                    const errorData = result.json();
+                    const errorJson = errorData.error.message;
+                    showErrorToast(errorJson);
+                }
+
+            }
+        }
     }
     console.log("lead data list is", leadData);
 
@@ -98,50 +136,51 @@ const Leads = ({routes,navigation}) => {
             {loading &&
                 <AnimatedLoader
                     visible={true}
-
+                    overlayColor="rgba(0,0,0,0)"
                     source={require("../../../loader.json")}
                     animationStyle={styles.lottie}
                     speed={1}
                 />
             }
             {!loading &&
-            <View style={{flex:1}}>
-             <HeaderText>Leads</HeaderText>
-                <ScrollView >
-                   
-
-                    {
-                        leadData.map((u, i) => {
-                            if (u.fullname !== null) {
-                                return (
-
-                                    <CardListComponent data={u} key={i} />
+                <View style={{ flex: 1 }}>
+                    <HeaderText>Leads</HeaderText>
+                    <ScrollView >
 
 
+                        {
 
-                                    // <View key={i} >
-                                    //     <Card containerStyle={{ borderRadius:10,opacity:100,borderWidth:0}}>
+                            leadData !== undefined && leadData.map((u, i) => {
+                                if (u.fullname !== null) {
+                                    return (
+
+                                        <CardListComponent data={u} key={i} />
 
 
-                                    //     <Text>{u.fullname}</Text>
-                                    //     <Text>{u.phone}</Text>
 
-                                    //     </Card>
-                                    // </View>
-                                );
-                            }
-                        })
+                                        // <View key={i} >
+                                        //     <Card containerStyle={{ borderRadius:10,opacity:100,borderWidth:0}}>
 
-                    }
 
-                </ScrollView>
+                                        //     <Text>{u.fullname}</Text>
+                                        //     <Text>{u.phone}</Text>
+
+                                        //     </Card>
+                                        // </View>
+                                    );
+                                }
+                            })
+
+                        }
+
+                    </ScrollView>
                 </View>
             }
             <FAB
                 style={styles.fab}
                 small
                 icon="plus"
-                onPress={() => 
+                onPress={() =>
                     navigation.navigate(Routes.LEAD_SCREEN)}
             />
         </View>
@@ -157,8 +196,8 @@ const styles = StyleSheet.create({
         margin: 16,
         right: 0,
         bottom: 0,
-        backgroundColor:defaultTheme.colors.primary
-      },
+        backgroundColor: defaultTheme.colors.primary
+    },
 })
 
 export default Leads;

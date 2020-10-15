@@ -11,7 +11,19 @@ export default props => {
     return (
         <Stack.Navigator headerMode="screen"
         >
+            <Stack.Screen name={Routes.BOOKING_FORM_SCREEN} component={BookingForm}
+                options={{
+                    title: 'Menu',
+                    headerStyle: {
+                        backgroundColor: '#f4511e',
+                    },
+                    headerTintColor: '#fff',
+                    headerTitleStyle: {
+                        fontWeight: 'bold',
+                    },
+                }}
 
+            />
 
             <Stack.Screen name={Routes.OPPORTUNITY_SCREEN} component={OpportunityForm}
                 options={{
@@ -42,19 +54,7 @@ export default props => {
             />
 
 
-            <Stack.Screen name={Routes.BOOKING_FORM_SCREEN} component={BookingForm}
-                options={{
-                    title: 'Menu',
-                    headerStyle: {
-                        backgroundColor: '#f4511e',
-                    },
-                    headerTintColor: '#fff',
-                    headerTitleStyle: {
-                        fontWeight: 'bold',
-                    },
-                }}
 
-            />
 
 
 

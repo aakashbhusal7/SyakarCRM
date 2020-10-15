@@ -10,7 +10,6 @@ import theme from '../../Themes/configs/default';
 import { ICON_TYPE } from '../../Icons';
 
 const MainScreen=({ routes,navigation })=> {
-  navigation.openDrawer();
  
 
   React.useEffect(() => {
@@ -32,6 +31,8 @@ const MainScreen=({ routes,navigation })=> {
             />
           </View>
         );
+      },headerStyle: {
+        backgroundColor: theme.colors.primary,
       },
     });
   }, [navigation, theme.colors.headerTitle]);

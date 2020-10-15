@@ -8,12 +8,12 @@ const theme = {
   roundness: 7,
   colors: {
     ...DefaultTheme.colors,
-    primary: '#1c2541',
+    primary: '#e62709',
     accent: '#ffa630',
     background: '#F1F7ED',
     text: colors.panegrey,
     placeholder: colors.ashgrey,
-    header: '#1c2541',
+    header: '#e0180d',
     headerTitle: colors.white,
 
     //react-native-paper theme colors

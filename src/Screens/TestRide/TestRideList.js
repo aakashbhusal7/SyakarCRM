@@ -8,6 +8,7 @@ import { HeaderButton } from '../../Components';
 import CardListComponent from '../../Components/CardListComponent';
 import HeaderText from '../../Components/HeaderText';
 import { ICON_TYPE } from '../../Icons';
+import { showErrorToast } from '../../Lib/Toast';
 import defaultTheme from '../../Themes';
 import theme from '../../Themes/configs/default';
 
@@ -56,7 +57,7 @@ const TestRideList = (props) => {
             const value = await AsyncStorage.getItem('@token_key');
             if (value !== null) {
                 setToken(value);
-                _apiCall();
+                _apiCall(value);
                 console.log("token is= " + value);
             }
         } catch (error) {
@@ -64,30 +65,44 @@ const TestRideList = (props) => {
         }
     }
 
-    async function _apiCall() {
+    async function _apiCall(value) {
         const result = await fetch("https://syakarhonda.api.crm5.dynamics.com/api/data/v9.1/opportunities?$filter=agile_interested eq 2", {
             method: 'GET',
             headers: {
-                'Authorization': 'Bearer ' + token,
+                'Authorization': 'Bearer ' + value,
                 'Accept': 'application/json',
                 'Content-Type': 'application/json',
             }
 
         });
         console.log("result is", result.status);
-        const data = await result.json();
-        let tempList = [];
-        data.value.map((object, key) =>
-            tempList.push({
-                "name": object.name,
-                "email": object.emailaddress,
-                "feedback": object.agile_testridefeedback,
-                "licenseNumber": object.agile_testridelicense,
+        if (result.ok) {
+            const data = await result.json();
+            let tempList = [];
+            data.value.map((object, key) =>
+                tempList.push({
+                    "name": object.name,
+                    "email": object.emailaddress,
+                    "feedback": object.agile_testridefeedback,
+                    "licenseNumber": object.agile_testridelicense,
 
-            })
-        );
-        setLeadData(tempList);
-        setLoadindg(false);
+                })
+            );
+            setLeadData(tempList);
+            setLoadindg(false);
+        } else {
+            setLoadindg(false);
+            setLeadData(undefined);
+            if (result.status == 401) {
+                showErrorToast("User session expired!")
+                navigation.navigate(Routes.LOGIN_STACK);
+            } else {
+                const errorData = result.json();
+                const errorJson = errorData.error.message;
+                showErrorToast(errorJson);
+            }
+
+        }
     }
     console.log("lead data list is", leadData);
 
@@ -96,20 +111,19 @@ const TestRideList = (props) => {
             {loading &&
                 <AnimatedLoader
                     visible={true}
-
                     source={require("../../../loader.json")}
                     animationStyle={styles.lottie}
                     speed={1}
                 />
             }
             {!loading &&
-                <View style={{flex:1}}>
+                <View style={{ flex: 1 }}>
                     <HeaderText>Test Rides</HeaderText>
 
                     <ScrollView >
 
                         {
-                            leadData.map((u, i) => {
+                            leadData !== undefined && leadData.map((u, i) => {
                                 if (u.name !== null) {
                                     return (
 

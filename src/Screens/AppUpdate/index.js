@@ -17,7 +17,7 @@ const AppUpdate = () => {
           justifyContent: 'center',
           alignItems: 'center',
         }}>
-        <Text style={{fontSize: 24, color: colors.cyan700}}>
+        <Text style={{fontSize: 24, color:'#bd2820'}}>
           APP UPDATE SCREEN
         </Text>
 
