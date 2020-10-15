@@ -19,7 +19,7 @@ const colors = {
   musturd: '#FFC857',
 
   //text
-  darkgunmetal: '#21303D',
+  darkgunmetal: '#D60707',
   panegrey: '#5C6D7C',
   slategrey: '#6F8496',
   ashgrey: '#AEB4BA',

@@ -1,18 +1,19 @@
 import AsyncStorage from '@react-native-community/async-storage';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import { Formik } from 'formik';
 import React, { useState } from 'react';
 import { Dimensions, SafeAreaView, ScrollView, StatusBar, StyleSheet, Text, TextInput, View } from 'react-native';
+import { BASE_URL, OPPORTUNITY_ENDPOINT } from 'react-native-dotenv';
 import * as yup from 'yup';
 import { ButtonX, HeaderButton } from '../../Components';
 import HeaderText from '../../Components/HeaderText';
 import useTranslation from '../../i18n';
-import defaultTheme from '../../Themes';
-import { useNavigation, useRoute } from '@react-navigation/native';
-import { BASE_URL, OPPORTUNITY_ENDPOINT } from 'react-native-dotenv';
-import { showErrorToast, showSuccessToast } from '../../Lib/Toast';
-import { sub } from 'react-native-reanimated';
-import theme from '../../Themes/configs/default';
 import { ICON_TYPE } from '../../Icons';
+import { showErrorToast, showSuccessToast } from '../../Lib/Toast';
+import defaultTheme from '../../Themes';
+import theme from '../../Themes/configs/default';
+import { ProgressSteps, ProgressStep } from 'react-native-progress-steps';
+import Routes from '../../Navigation/Routes';
 
 var width = Dimensions.get('window').width;
 
@@ -110,7 +111,7 @@ const TestRideForm = (props) => {
     const { t } = useTranslation();
     const route = useRoute();
     const navigation = useNavigation();
-
+    const [complete, setComplete] = useState(false);
 
     React.useEffect(() => {
         const _toggleDrawer = () => {
@@ -191,9 +192,19 @@ const TestRideForm = (props) => {
             body: requestBody
         }).then((response) => {
             if (response.ok) {
+                setComplete(true);
                 showSuccessToast("Successfully setup test ride form")
+                navigation.navigate(Routes.HOME_SCREEN)
+                navigation.reset({
+                    index: 0,
+                    routes: [{ name: 'HOME' }]
+                })
             }
             else {
+                if (response.status == 401) {
+                    showErrorToast("User session expired!")
+                    navigation.navigate(Routes.LOGIN_STACK);
+                }
                 response.json().then((body) => {
                     errorMessage = body.error.message;
                     showErrorToast(errorMessage);
@@ -214,6 +225,28 @@ const TestRideForm = (props) => {
                 <View style={styles.body}>
                     <HeaderText>Test Ride</HeaderText>
                 </View>
+
+                <View style={{ marginBottom: 82, paddingBottom: 16 }}>
+                    <ProgressSteps
+                        style={{ flex: 1 }}
+                        topOffset={10}
+                        activeStepIconBorderColor="red"
+                        completedProgressBarColor="red"
+                        activeLabelColor="red"
+                        isComplete={complete}
+                        activeStep={2}>
+                        <ProgressStep label="Lead Info" nextBtnText="" previousBtnText="" removeBtnRow={true}>
+
+                        </ProgressStep>
+                        <ProgressStep label="Opportunity" nextBtnText="" previousBtnText="" removeBtnRow={true}>
+
+                        </ProgressStep>
+                        <ProgressStep label="Confirm" nextBtnText="" previousBtnText="" finishBtnText="" removeBtnRow={true}>
+
+                        </ProgressStep>
+                    </ProgressSteps>
+                </View>
+
                 <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
 
                     <Formik

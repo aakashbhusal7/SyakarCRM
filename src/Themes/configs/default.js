@@ -14,7 +14,7 @@ const theme = {
     background: colors.issabeline,
     text: colors.panegrey,
     placeholder: colors.ashgrey,
-    header: '#5c80bc',
+    header: '#d91e4a',
     headerTitle: colors.white,
 
     //react-native-paper theme colors
