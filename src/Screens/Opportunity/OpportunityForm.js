@@ -16,7 +16,6 @@ import colors from '../../Themes/Colors';
 import { navigationRef } from '../../Navigation';
 import theme from '../../Themes/configs/default';
 import { ICON_TYPE } from '../../Icons';
-import DatePickerComponent from '../../Components/DatePickerComponent';
 import { TouchableOpacity } from 'react-native-gesture-handler';
 import { ProgressSteps, ProgressStep } from 'react-native-progress-steps';
 
