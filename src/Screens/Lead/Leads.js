@@ -2,7 +2,7 @@ import AsyncStorage from '@react-native-community/async-storage';
 import React from 'react'
 import { View, StyleSheet, Text } from 'react-native'
 import { BASE_URL, LEADS_ENDPOINT } from 'react-native-dotenv';
-import { Card, ListItem, Button, Icon } from 'react-native-elements'
+import { Card, ListItem, Button, Icon, SearchBar } from 'react-native-elements'
 import { ScrollView } from 'react-native-gesture-handler';
 import AnimatedLoader from "react-native-animated-loader";
 import CardListComponent from '../../Components/CardListComponent';
@@ -15,6 +15,9 @@ import { HeaderButton } from '../../Components';
 import { ICON_TYPE } from '../../Icons';
 import HeaderText from '../../Components/HeaderText';
 import { showErrorToast } from '../../Lib/Toast';
+import { AuthContext } from '../../Components/context';
+import { l } from 'i18n-js';
+import Fonts from '../../Themes/Fonts';
 
 const Leads = ({ routes, navigation }) => {
 
@@ -40,12 +43,17 @@ const Leads = ({ routes, navigation }) => {
             },
         });
     }, [navigation, theme.colors.headerTitle]);
-
-    const [leadData, setLeadData] = React.useState();
+    const { signOut } = React.useContext(AuthContext);
+    const [leadData, setLeadData] = React.useState([]);
     const [token, setToken] = React.useState(undefined);
     const [contactKey, setContactKey] = React.useState();
     const [loading, setLoadindg] = React.useState(true);
+    const [search, setSearch] = React.useState({
+        allData: leadData,
+        filteredData: leadData
+    });
     // const navigation=useNavigation();
+
     React.useEffect(() => {
         retrieveToken();
 
@@ -106,9 +114,13 @@ const Leads = ({ routes, navigation }) => {
                         "phone": object.mobilephone,
                         "email": object.emailaddress1,
                         "leadNature": object.new_leadnature,
+                        "leadId": object.leadid,
                     })
                 );
                 setLeadData(tempList);
+                setSearch({
+                    filteredData: tempList
+                })
                 setLoadindg(false);
             }
             else {
@@ -116,10 +128,11 @@ const Leads = ({ routes, navigation }) => {
                 setLeadData(undefined);
                 if (result.status == 401) {
                     showErrorToast("User session expired!")
-                    navigation.reset({
-                        index: 0,
-                        routes: [{ name: ' LOGIN_SCREEN' }],
-                    });
+                    signOut();
+                    // navigation.reset({
+                    //     index: 0,
+                    //     routes: [{ name: ' LOGIN_SCREEN' }],
+                    // });
                 } else {
                     const errorData = result.json();
                     const errorJson = errorData.error.message;
@@ -129,7 +142,16 @@ const Leads = ({ routes, navigation }) => {
             }
         }
     }
-    console.log("lead data list is", leadData);
+    console.log("lead data list filtered is", search.filteredData);
+
+    const updateSearch = (text) => {
+        console.log("data of search is", leadData);
+        setSearch({
+            filteredData: leadData.filter(value =>
+                value.fullname.toLowerCase().includes(text.toLowerCase()),
+            ),
+        })
+    }
 
     return (
         <View style={{ flex: 1, marginTop: 36, marginBottom: 24, paddingBottom: 24 }}>
@@ -145,21 +167,32 @@ const Leads = ({ routes, navigation }) => {
             {!loading &&
                 <View style={{ flex: 1 }}>
                     <HeaderText>Leads</HeaderText>
+                    <SearchBar
+                        underlineColorAndroid="white"
+                        lightTheme={true}
+                        containerStyle={{ backgroundColor: 'white', color: 'white', borderWidth: 0, marginTop: 8, marginBottom: 8, marginLeft: 16, marginRight: 16 }}
+                        inputContainerStyle={{ backgroundColor: 'white', height: 32, borderWidth: 0, borderColor: 'white' }}
+                        inputStyle={{ fontFamily: Fonts.type.primary, fontSize: 16 }}
+                        placeholder="Search"
+                        onChangeText={text => updateSearch(text)}
+                        value={search}
+                    />
                     <ScrollView >
 
 
                         {
 
-                            leadData !== undefined && leadData.map((u, i) => {
+                            leadData !== undefined &&
+                            search.filteredData.map((u, i) => {
                                 if (u.fullname !== null) {
                                     return (
 
-                                        <CardListComponent data={u} key={i} />
+                                        <CardListComponent flag="lead" token={token} data={u} key={i} />
 
 
 
                                         // <View key={i} >
-                                        //     <Card containerStyle={{ borderRadius:10,opacity:100,borderWidth:0}}>
+                                        //     <Card containerStyle={{ borderRadius: 10, opacity: 100, borderWidth: 0 }}>
 
 
                                         //     <Text>{u.fullname}</Text>

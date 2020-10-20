@@ -9,6 +9,7 @@ import metrics from '../../Themes/Metrics';
 import LeadStack from '../LeadStack';
 import OpportunityStack from '../OpportunityStack';
 import Routes from '../Routes';
+import BottomStack from './BottomStack';
 import MainStack from './MainStack';
 
 
@@ -37,7 +38,7 @@ export default props => {
         drawerContent={props => <DrawerScreen {...props} />}
         drawerContentOptions={username}
       >
-
+        <Drawer.Screen name="Home Drawer" component={BottomStack}/>
         <Drawer.Screen name={Routes.HOME_STACK} component={MainStack} />
 
         {/* <Drawer.Screen name={Routes.LEAD_LIST_SCREEN} component={LeadStack} />

@@ -3,7 +3,6 @@ import Login from '../Screens/Login';
 import {createStackNavigator} from '@react-navigation/stack';
 import Routes from './Routes';
 import AppIntro from '../Screens/AppIntro';
-import SplashScreen from '../Screens/AppIntro';
 import Signup from '../Screens/Signup';
 import SetPassword from '../Screens/SetPassword';
 

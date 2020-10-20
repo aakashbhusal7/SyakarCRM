@@ -1,7 +1,7 @@
 import { createStackNavigator } from '@react-navigation/stack';
 import React from 'react';
-import TestRideForm from '../Screens/Opportunity/TestRideForm';
-import TestRideList from '../Screens/TestRide/TestRideList';
+import BookingList from '../Screens/BookingList';
+import BookingForm from '../Screens/Opportunity/BookingForm';
 import Routes from './Routes';
 
 const Stack = createStackNavigator();
@@ -13,7 +13,7 @@ export default props => {
 
 
 
-            <Stack.Screen name={Routes.TEST_RIDE_LIST_SCREEN} component={TestRideList}
+            <Stack.Screen name={Routes.BOOKING_LIST_SCREEN} component={BookingList}
                 options={{
                     title: 'Menu',
                     headerStyle: {
@@ -25,9 +25,11 @@ export default props => {
                     },
                 }}
 
+
+
             />
 
-            <Stack.Screen name={Routes.TEST_RIDE_FORM_SCREEN} component={TestRideForm}
+            <Stack.Screen name={Routes.BOOKING_FORM_SCREEN} component={BookingForm}
                 options={{
                     title: 'Menu',
                     headerStyle: {

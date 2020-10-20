@@ -57,7 +57,7 @@ const Drawer = (props) => {
             marginLeft: 24,
             marginTop: 24,
             fontSize: 14,
-            fontFamily: Fonts.type.bold,
+            fontFamily: Fonts.type.extraBold,
             color: defaultTheme.colors.primary
 
           }}>
@@ -77,7 +77,7 @@ const Drawer = (props) => {
 const Content = (props) => {
   const { logout } = useAuth();
   const lead = () => {
-    props.navigation.navigate(Routes.LEAD_LIST_SCREEN)
+    props.navigation.navigate(Routes.LEAD_LIST_SCREEN);
   }
   const followUp = () => {
     props.navigation.navigate(Routes.FOLLOW_UP_LIST_SCREEN)
@@ -97,10 +97,10 @@ const Content = (props) => {
       <SubItem name="Hot Leads" logo={<IconLeadSmall />} />
       <SubItem name="Cold Leads" logo={<IconLeadSmall />} />
       <SubItem name="Warms Leads" logo={<IconLeadSmall />} />
-      <Item name="Booking" logo={<IconBooking />}  onPress={booking} />
+      <Item name="Booking" logo={<IconBooking />} onPress={booking} />
       <SubItem name="Active Booking" logo={<IconBookingActive />} />
       <Item name="Follow Up" logo={<IconFollowup />} onPress={followUp} />
-      <Item name="Test Ride" logo={<Image style={styles.imageStyle} source={require('../../../assets/logo_car.png')} />} onPress={testRide}/>
+      <Item name="Test Ride" logo={<Image style={styles.imageStyle} source={require('../../../assets/logo_car.png')} />} onPress={testRide} />
       <Item name="Notifications" logo={<Image style={styles.imageStyle} source={require('../../../assets/logo_notification.png')} />} />
       <View style={{ height: 20 }} />
       <Item name="Log out" onPress={logout} />
@@ -113,7 +113,7 @@ const Item = ({ name, logo, color = 'black', onPress = () => { } }) => {
     <TouchableX border onPress={onPress}>
       <View style={{ padding: 16, flexDirection: 'row', backgroundColor: '#F1F1F1', alignItems: 'center' }}>
         {logo}
-        <Text style={{ color, fontFamily: Fonts.type.bold, marginLeft: 8, fontSize: 20 }}>{name}</Text>
+        <Text style={{ color, fontFamily: Fonts.type.semiBold, marginLeft: 8, fontSize: 20 }}>{name}</Text>
       </View>
     </TouchableX>
   );
@@ -124,7 +124,7 @@ const SubItem = ({ name, logo, color = 'black', onPress = () => { } }) => {
     <TouchableX border onPress={onPress}>
       <View style={{ paddingLeft: 16, paddingBottom: 12, paddingTop: 4, flexDirection: 'row', alignItems: 'center' }}>
         {logo}
-        <Text style={{ color, fontFamily: Fonts.type.bold, marginLeft: 8, fontSize: 14 }}>{name}</Text>
+        <Text style={{ color, fontFamily: Fonts.type.primary, marginLeft: 8, fontSize: 14 }}>{name}</Text>
       </View>
     </TouchableX>
   );

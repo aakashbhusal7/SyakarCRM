@@ -13,7 +13,7 @@ const styles = StyleSheet.create({
       fontSize:28,
       marginLeft:16,
       color:colors.black,
-      fontFamily:Fonts.type.bold,
+      fontFamily:Fonts.type.semiBold,
       marginBottom:8,
   }
 });

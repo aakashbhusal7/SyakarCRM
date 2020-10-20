@@ -2,10 +2,9 @@ import AsyncStorage from '@react-native-community/async-storage';
 import React from 'react'
 import { View, StyleSheet, Text } from 'react-native'
 import { BASE_URL, OPPORTUNITY_ENDPOINT } from 'react-native-dotenv';
-import { Card, ListItem, Button, Icon } from 'react-native-elements'
+import { Card, ListItem, Button, Icon, SearchBar } from 'react-native-elements'
 import { ScrollView } from 'react-native-gesture-handler';
 import AnimatedLoader from "react-native-animated-loader";
-import { FAB } from 'react-native-paper';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import CardListComponent from '../Components/CardListComponent';
 import theme from '../Themes/configs/default';
@@ -15,6 +14,8 @@ import { showErrorToast } from '../Lib/Toast';
 import defaultTheme from '../Themes';
 import Routes from '../Navigation/Routes';
 import { HeaderButton } from '../Components';
+import { AuthContext } from '../Components/context';
+import Fonts from '../Themes/Fonts';
 
 const BookingList = (props) => {
 
@@ -42,10 +43,14 @@ const BookingList = (props) => {
             },
         });
     }, [navigation, theme.colors.headerTitle]);
-
-    const [leadData, setLeadData] = React.useState();
+    const { signOut } = React.useContext(AuthContext);
+    const [leadData, setLeadData] = React.useState([]);
     const [token, setToken] = React.useState();
     const [loading, setLoadindg] = React.useState(true);
+    const [search, setSearch] = React.useState({
+        allData: leadData,
+        filteredData: leadData
+    });
     // const navigation=useNavigation();
     React.useEffect(() => {
         retrieveToken();
@@ -84,21 +89,25 @@ const BookingList = (props) => {
         if (result.ok) {
             const data = await result.json();
             let tempList = [];
-            data.value.map((object, key) =>
+            data.value.filter(value => value.name !== null).map((object, key) =>
                 tempList.push({
                     "name": object.name,
                     "email": object.emailaddress,
+                    "bookingId": object.opportunityid,
 
                 })
             );
             setLeadData(tempList);
+            setSearch({
+                filteredData: tempList
+            })
             setLoadindg(false);
         } else {
             setLoadindg(false);
             setLeadData(undefined);
             if (result.status === 401) {
                 showErrorToast("User session expired!")
-                navigation.navigate(Routes.LOGIN_STACK);
+                signOut();
             } else {
                 const errorData = result.json();
                 const errorJson = errorData.error.message;
@@ -108,6 +117,15 @@ const BookingList = (props) => {
         }
     }
     console.log("lead data list is", leadData);
+
+    const updateSearch = (text) => {
+        console.log("data of search is", leadData);
+        setSearch({
+            filteredData: leadData.filter(value =>
+                value.name.toLowerCase().includes(text.toLowerCase()),
+            ),
+        })
+    }
 
     return (
         <View style={{ flex: 1, marginTop: 36 }}>
@@ -123,15 +141,25 @@ const BookingList = (props) => {
             {!loading &&
                 <View>
                     <HeaderText>Bookings</HeaderText>
+                    <SearchBar
+                        underlineColorAndroid="white"
+                        lightTheme={true}
+                        containerStyle={{ backgroundColor: 'white', color: 'white', borderWidth: 0, marginTop: 8, marginBottom: 8, marginLeft: 16, marginRight: 16 }}
+                        inputContainerStyle={{ backgroundColor: 'white', height: 32, borderWidth: 0, borderColor: 'white' }}
+                        inputStyle={{ fontFamily: Fonts.type.primary, fontSize: 16 }}
+                        placeholder="Search"
+                        onChangeText={text => updateSearch(text)}
+                        value={search}
+                    />
                     <ScrollView style={{ marginBottom: 24 }}>
 
 
                         {
-                            leadData !== undefined && leadData.map((u, i) => {
+                            leadData !== undefined && search.filteredData.map((u, i) => {
                                 if (u.name !== null) {
                                     return (
 
-                                        <CardListComponent flag="booking" data={u} key={i} />
+                                        <CardListComponent flag="booking" token={token} data={u} key={i} />
 
 
 
