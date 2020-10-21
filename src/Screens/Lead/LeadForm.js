@@ -473,7 +473,7 @@ const LeadForm = (props) => {
         productList.length = 0;
 
 
-        console.log("product list is", productDataItems);
+        // console.log("product list is", productDataItems);
         setLoading(false);
     }
 
@@ -966,7 +966,7 @@ const LeadForm = (props) => {
     }
     const { selectedIndex } = index;
 
-    console.log("final data option set is", dataOptionSet);
+    console.log("token is", token);
     console.log("product lisr data is", productsListData);
 
     return (

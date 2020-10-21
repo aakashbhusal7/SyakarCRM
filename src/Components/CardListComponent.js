@@ -166,6 +166,7 @@ const CardListComponent = (props) => {
                         <TouchableOpacity onPress={() => {
                             navigation.navigate(Routes.LEAD_SCREEN, {
                                 flag: 'edit',
+                                
                                 leadId: props.data.leadId
 
                             })
