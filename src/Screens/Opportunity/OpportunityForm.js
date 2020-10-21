@@ -18,6 +18,7 @@ import theme from '../../Themes/configs/default';
 import { ICON_TYPE } from '../../Icons';
 import { TouchableOpacity } from 'react-native-gesture-handler';
 import { ProgressSteps, ProgressStep } from 'react-native-progress-steps';
+import Fonts from '../../Themes/Fonts';
 
 var width = Dimensions.get('window').width;
 
@@ -28,7 +29,7 @@ const StyledInput = ({ label, formikProps, uneditable, passedValue, formikKey, .
         width: width / 1.115,
         color: !uneditable ? "black" : "#979797",
         fontSize: 14,
-        fontFamily: "WorkSans-Medium",
+        fontFamily: Fonts.type.primary,
         lineHeight: 16,
         alignSelf: 'stretch',
         alignItems: 'center',
@@ -49,7 +50,7 @@ const StyledInput = ({ label, formikProps, uneditable, passedValue, formikKey, .
         marginLeft: 0,
         lineHeight: 12,
         marginBottom: 0,
-        fontFamily: "WorkSans-Regular",
+        fontFamily: Fonts.type.primary,
         alignItems: 'center'
     };
     const errorStylesLastName = {
@@ -57,7 +58,7 @@ const StyledInput = ({ label, formikProps, uneditable, passedValue, formikKey, .
         fontSize: 12,
         lineHeight: 12,
         marginLeft: 4,
-        fontFamily: "WorkSans-Regular",
+        fontFamily: Fonts.type.primary,
         alignItems: 'center'
     };
     let lastName = false;
@@ -465,6 +466,7 @@ const styles = StyleSheet.create({
         marginTop: 2,
         marginBottom: 4,
         marginLeft: 4,
+        fontFamily:Fonts.type.primary,
         color: '#333333',
     },
     ovalButton: {

@@ -1,8 +1,10 @@
 export default {
   type: {
-    primary: 'Lato-Regular',
+    primary: 'WorkSans-Regular',
     secondary: 'OpenSans-Regular',
-    bold: 'Lato-Bold',
+    bold: 'WorkSans-Bold',
+    semiBold:'WorkSans-SemiBold',
+    extraBold:'WorkSans-ExtraBold',
     stylish: 'GreatVibes-Regular',
     italic: 'GentiumBookBasic-Italic',
   },

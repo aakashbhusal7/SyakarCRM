@@ -60,8 +60,9 @@
     "react-native-screens": "^2.9.0",
     "react-native-svg": "^12.1.0",
     "react-native-svg-transformer": "^0.14.3",
+    "react-native-swipeable": "^0.6.0",
     "react-native-tiny-toast": "^1.0.3",
-    "react-native-vector-icons": "^7.0.0",
+    "react-native-vector-icons": "^7.1.0",
     "redux-logger": "^3.0.6",
     "yup": "^0.29.3"
   },

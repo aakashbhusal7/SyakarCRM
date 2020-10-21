@@ -43,7 +43,7 @@ export default props => {
 
       />
 
-
+      <Drawer.Screen name="BottomStack" component={BottomStack} />
 
 
       <Drawer.Screen name={Routes.LEAD_LIST_SCREEN} component={Leads} options={{
@@ -69,6 +69,17 @@ export default props => {
           },
         }}
       />
+
+<Drawer.Screen name={Routes.BOOKING_FORM_SCREEN} component={BookingForm} options={{
+        title: 'Menu',
+        headerStyle: {
+          backgroundColor: '#f4511e',
+        },
+        headerTintColor: '#fff',
+        headerTitleStyle: {
+          fontWeight: 'bold',
+        },
+      }} />
 
       <Drawer.Screen name={Routes.OPPORTUNITY_SCREEN} component={OpportunityForm}
         options={{
@@ -97,16 +108,7 @@ export default props => {
         }}
 
       />
-      <Drawer.Screen name={Routes.BOOKING_FORM_SCREEN} component={BookingForm} options={{
-        title: 'Menu',
-        headerStyle: {
-          backgroundColor: '#f4511e',
-        },
-        headerTintColor: '#fff',
-        headerTitleStyle: {
-          fontWeight: 'bold',
-        },
-      }} />
+     
       <Drawer.Screen name={Routes.TEST_RIDE_LIST_SCREEN} component={TestRideList} options={{
         title: 'Menu',
         headerStyle: {

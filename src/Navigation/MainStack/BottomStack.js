@@ -1,13 +1,13 @@
 /* eslint-disable react-native/no-inline-styles */
 import React from 'react';
-import {createMaterialBottomTabNavigator} from '@react-navigation/material-bottom-tabs';
-import { Image,View } from 'react-native'
+import { createMaterialBottomTabNavigator } from '@react-navigation/material-bottom-tabs';
+import { Image, View } from 'react-native'
 import Routes from '../Routes/index';
 import Home from '../../Screens/Home';
 import App from '../../Screens/App';
 import Profile from '../../Screens/Profile';
-import {IconX, ICON_TYPE} from '../../Icons';
-import {createStackNavigator} from '@react-navigation/stack';
+import { IconX, ICON_TYPE } from '../../Icons';
+import { createStackNavigator } from '@react-navigation/stack';
 import useAppTheme from '../../Themes/Context';
 import useTranslation from '../../i18n';
 import NavigationStyles from '../../Styles/NavigationStyles';
@@ -18,10 +18,14 @@ import TestRideList from '../../Screens/TestRide/TestRideList';
 import OpportunityForm from '../../Screens/Opportunity/OpportunityForm';
 import TestRideForm from '../../Screens/Opportunity/TestRideForm';
 import TestRideStack from '../TestRideStack';
+import FollowUpList from '../../Screens/FollowUp/FollowUpList';
+import FollowupStack from '../FollowupStack';
+import BookingList from '../../Screens/BookingList';
+import BookingStack from '../BookingStack';
 
 const HomeStackScreen = () => {
-  const {t} = useTranslation();
-  const {theme} = useAppTheme();
+  const { t } = useTranslation();
+  const { theme } = useAppTheme();
 
   return (
     <Stack.Navigator>
@@ -30,11 +34,11 @@ const HomeStackScreen = () => {
           title: t('home'),
           headerStyle: [
             NavigationStyles.header_statusBar,
-            {backgroundColor: theme.colors.header},
+            { backgroundColor: theme.colors.header },
           ],
           headerTitleStyle: [
             NavigationStyles.headerTitle,
-            {color: theme.colors.headerTitle},
+            { color: theme.colors.headerTitle },
           ],
         }}
         name="homestackscreen"
@@ -45,8 +49,8 @@ const HomeStackScreen = () => {
 };
 
 const ProfileStackScreen = () => {
-  const {t} = useTranslation();
-  const {theme} = useAppTheme();
+  const { t } = useTranslation();
+  const { theme } = useAppTheme();
 
   return (
     <Stack.Navigator>
@@ -55,11 +59,11 @@ const ProfileStackScreen = () => {
           title: t('profile'),
           headerStyle: [
             NavigationStyles.header_statusBar,
-            {backgroundColor: theme.colors.header},
+            { backgroundColor: theme.colors.header },
           ],
           headerTitleStyle: [
             NavigationStyles.headerTitle,
-            {color: theme.colors.headerTitle},
+            { color: theme.colors.headerTitle },
           ],
         }}
         name="profilestackscreen"
@@ -70,8 +74,8 @@ const ProfileStackScreen = () => {
 };
 
 const NotificationStackScreen = () => {
-  const {t} = useTranslation();
-  const {theme} = useAppTheme();
+  const { t } = useTranslation();
+  const { theme } = useAppTheme();
 
   return (
     <Stack.Navigator>
@@ -81,11 +85,11 @@ const NotificationStackScreen = () => {
             title: t('settings'),
             headerStyle: [
               NavigationStyles.header_statusBar,
-              {backgroundColor: theme.colors.header},
+              { backgroundColor: theme.colors.header },
             ],
             headerTitleStyle: [
               NavigationStyles.headerTitle,
-              {color: theme.colors.headerTitle},
+              { color: theme.colors.headerTitle },
             ],
           };
         }}
@@ -96,10 +100,10 @@ const NotificationStackScreen = () => {
   );
 };
 
-function getHomeIcon({focused, color}) {
+function getHomeIcon({ focused, color }) {
   return (
     <IconX
-      style={{marginBottom: 5}}
+      style={{ marginBottom: 5 }}
       origin={ICON_TYPE.MATERIAL_ICONS}
       name={'home'}
       color={color}
@@ -107,10 +111,10 @@ function getHomeIcon({focused, color}) {
   );
 }
 
-function getLeadIcon({focused, color}) {
+function getLeadIcon({ focused, color }) {
   return (
     <IconX
-      style={{marginBottom: 5}}
+      style={{ marginBottom: 5 }}
       origin={ICON_TYPE.MATERIAL_ICONS}
       name={'assignment'}
       color={color}
@@ -118,23 +122,34 @@ function getLeadIcon({focused, color}) {
   );
 }
 
-function getBookingIcon({focused, color}) {
+function getBookingIcon({ focused, color }) {
   return (
     <IconX
-      style={{marginBottom: 5}}
-      origin={ICON_TYPE.MATERIAL_ICONS}
-      name={'today'}
+      style={{ marginBottom: 5 }}
+      origin={ICON_TYPE.ICONICONS}
+      name={'book-outline'}
       color={color}
     />
   );
 }
 
-function getTestRideIcon({focused, color}) {
+function getTestRideIcon({ focused, color }) {
   return (
     <IconX
-      style={{marginBottom: 5}}
+      style={{ marginBottom: 5 }}
       origin={ICON_TYPE.ICONICONS}
       name={'bicycle-outline'}
+      color={color}
+    />
+  );
+}
+
+function getFollowUpIcon({ focused, color }) {
+  return (
+    <IconX
+      style={{ marginBottom: 5 }}
+      origin={ICON_TYPE.MATERIAL_ICONS}
+      name={'today'}
       color={color}
     />
   );
@@ -144,7 +159,7 @@ function getTestRideIcon({focused, color}) {
 const Tab = createMaterialBottomTabNavigator();
 
 const BottomTabs = () => {
-  const {theme} = useAppTheme();
+  const { theme } = useAppTheme();
   return (
     <Tab.Navigator
       initialRouteName={Routes.HOME_SCREEN}
@@ -152,7 +167,7 @@ const BottomTabs = () => {
       inactiveColor="rgba(255,255,255,0.4)"
       activeColor={theme.colors.surface}
       shifting={true}
-      barStyle={{backgroundColor: theme.colors.primary}}
+      barStyle={{ backgroundColor: theme.colors.primary }}
       labeled={false}>
       <Tab.Screen
         options={{
@@ -174,18 +189,26 @@ const BottomTabs = () => {
         options={{
           tabBarIcon: getBookingIcon,
           title: 'Booking',
-          
+
         }}
-        name={Routes.OPPORTUNITY_SCREEN}
-        component={OpportunityStack}
+        name={Routes.BOOKING_LIST_SCREEN}
+        component={BookingStack}
       />
-       <Tab.Screen
+      <Tab.Screen
         options={{
           tabBarIcon: getTestRideIcon,
           title: 'Test Ride',
         }}
         name={Routes.TEST_RIDE_FORM_SCREEN}
         component={TestRideStack}
+      />
+      <Tab.Screen
+        options={{
+          tabBarIcon: getFollowUpIcon,
+          title: 'Follow Up',
+        }}
+        name={Routes.FOLLOW_UP_LIST_SCREEN}
+        component={FollowupStack}
       />
     </Tab.Navigator>
   );

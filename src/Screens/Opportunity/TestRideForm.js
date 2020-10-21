@@ -8,21 +8,26 @@ import * as yup from 'yup';
 import { ButtonX, HeaderButton } from '../../Components';
 import HeaderText from '../../Components/HeaderText';
 import useTranslation from '../../i18n';
-import { ICON_TYPE } from '../../Icons';
+import { IconX, ICON_TYPE } from '../../Icons';
 import { showErrorToast, showSuccessToast } from '../../Lib/Toast';
 import defaultTheme from '../../Themes';
 import theme from '../../Themes/configs/default';
 import { ProgressSteps, ProgressStep } from 'react-native-progress-steps';
 import Routes from '../../Navigation/Routes';
+import Fonts from '../../Themes/Fonts';
+import { ButtonGroup } from 'react-native-elements';
+import { AuthContext } from '../../Components/context';
+import { TouchableOpacity } from 'react-native-gesture-handler';
 
 var width = Dimensions.get('window').width;
 
-const StyledInput = ({ label, formikProps, formikKey, ...rest }) => {
+const StyledInput = ({ label, formikProps, uneditable, passedValue, formikKey, ...rest }) => {
     const inputStyles = {
         height: 45,
         width: width / 1.115,
         fontSize: 14,
-        fontFamily: "WorkSans-Medium",
+        fontFamily: Fonts.type.primary,
+        color: !uneditable ? "#333333" : "#333333",
         lineHeight: 16,
         alignSelf: 'stretch',
         alignItems: 'center',
@@ -43,7 +48,7 @@ const StyledInput = ({ label, formikProps, formikKey, ...rest }) => {
         marginLeft: 0,
         lineHeight: 12,
         marginBottom: 0,
-        fontFamily: "WorkSans-Regular",
+        fontFamily: Fonts.type.primary,
         alignItems: 'center'
     };
     const errorStylesLastName = {
@@ -51,7 +56,7 @@ const StyledInput = ({ label, formikProps, formikKey, ...rest }) => {
         fontSize: 12,
         lineHeight: 12,
         marginLeft: 4,
-        fontFamily: "WorkSans-Regular",
+        fontFamily: Fonts.type.primary,
         alignItems: 'center'
     };
     let lastName = false;
@@ -70,6 +75,8 @@ const StyledInput = ({ label, formikProps, formikKey, ...rest }) => {
                 <View >
                     <TextInput
                         style={inputStyles}
+                        defaultValue={passedValue}
+                        editable={uneditable ? false : true}
                         underlineColorAndroid="transparent"
                         onChangeText={
                             formikProps.handleChange(formikKey)
@@ -107,11 +114,23 @@ const validationSchema = yup.object().shape({
 
 });
 const TestRideForm = (props) => {
+    const { signOut } = React.useContext(AuthContext);
+    const [editMode, setEditMode] = React.useState(false);
+    const [postUrl, setPostUrl] = React.useState(BASE_URL + OPPORTUNITY_ENDPOINT);
     const [token, setToken] = useState();
     const { t } = useTranslation();
     const route = useRoute();
     const navigation = useNavigation();
     const [complete, setComplete] = useState(false);
+    const [dataOptionSet, setDataOptionSet] = React.useState({
+        licenseNumber: undefined,
+        existingVehicle: undefined,
+        feedback: undefined,
+        name: undefined,
+        emailAddress: undefined,
+    });
+    const [reload, setReload] = React.useState(false);
+    const [patchMode, setPatchMode] = React.useState(false);
 
     React.useEffect(() => {
         const _toggleDrawer = () => {
@@ -135,6 +154,15 @@ const TestRideForm = (props) => {
             },
         });
     }, [navigation, theme.colors.headerTitle]);
+
+
+    let bookingId = '';
+    if (route.params !== undefined) {
+        if (route.params.flag == "edit") {
+            bookingId = route.params.bookingId;
+            console.log("passed opportunity id is", route.params.bookingId);
+        }
+    }
     React.useEffect((async) => {
         retrieveToken();
 
@@ -144,10 +172,12 @@ const TestRideForm = (props) => {
     let email = '';
     let subject = '';
     if (route.params !== undefined) {
-        console.log("passed props is", route.params.flag);
-        interest = route.params.flag;
-        email = route.params.email;
-        subject = "Interested in " + route.params.subject;
+        //console.log("passed props is", route.params.flag);
+        if (route.params.passingProp != undefined) {
+            interest = route.params.passingProp.flag;
+            email = route.params.passingProp.email;
+            subject = "Interested in " + route.params.passingProp.modelName;
+        }
     }
 
     else {
@@ -159,11 +189,53 @@ const TestRideForm = (props) => {
             const value = await AsyncStorage.getItem('@token_key');
             if (value !== null) {
                 setToken(value);
-                fetchProducts(value);
+                if (reload == false) {
+                    fetchExistingTestRide(value)
+                }
                 console.log("token is= " + value);
             }
         } catch (error) {
             console.log("error is", error);
+        }
+    }
+
+    function fetchExistingTestRide(token) {
+        let errorMessage = '';
+        if (bookingId !== '') {
+            fetch("https://syakarhonda.api.crm5.dynamics.com/api/data/v9.1/opportunities(" + bookingId + ")", {
+                headers: {
+                    'Authorization': 'Bearer ' + token,
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json',
+                }
+            }).then((res) => {
+                if (res.ok) {
+                    res.json().then(
+                        (resJson) => {
+                            setDataOptionSet({
+                                licenseNumber: resJson.agile_testridelicense,
+                                existingVehicle: resJson.agile_testrideexistingvechile,
+                                feedback: resJson.agile_testrideexistingvechile,
+                                name: "Interested in" + resJson.name,
+                                email: resJson.emailaddress,
+
+                            })
+                            setEditMode(true);
+                            //setLoading(false);
+
+                        })
+                } else {
+                    if (res.status == 401) {
+                        signOut();
+                    }
+                    res.json().then((body) => {
+                        errorMessage = body.error.message;
+                        showErrorToast(errorMessage)
+                        console.log("error message is", errorMessage);
+                    });
+                    console.log("error in edit lead form");
+                }
+            })
         }
     }
 
@@ -183,8 +255,45 @@ const TestRideForm = (props) => {
             name: subject,
             emailaddress: email
         })
-        fetch(BASE_URL + OPPORTUNITY_ENDPOINT, {
-            method: 'POST',
+        if (patchMode) {
+            requestBody = JSON.stringify({
+                agile_testridelicense: licenseNumber,
+                agile_testrideexistingvechile: vehicle,
+                agile_testridefeedback: feedback
+            })
+            fetch(postUrl, {
+                method: !patchMode ? 'POST' : 'PATCH',
+                headers: {
+                    'Authorization': 'Bearer ' + token,
+                    'Content-Type': 'application/json'
+                },
+                body: requestBody
+            }).then((response) => {
+                if (response.ok) {
+                    setComplete(true);
+                    showSuccessToast("Successfully updated test ride form");
+                    navigation.navigate(Routes.TEST_RIDE_LIST_SCREEN)
+                    navigation.reset({
+                        index: 0,
+                        routes: [{ name: 'TEST_RIDE_LIST' }]
+                    })
+                }
+                else {
+                    if (response.status == 401) {
+                        showErrorToast("User session expired!")
+                        signOut();
+                    }
+                    response.json().then((body) => {
+                        errorMessage = body.error.message;
+                        showErrorToast(errorMessage);
+                    });
+                }
+            }).catch(error => {
+                showErrorToast("Error while submitting the form. Please try again!");
+            })
+        }
+        fetch(postUrl, {
+            method: !patchMode ? 'POST' : 'PATCH',
             headers: {
                 'Authorization': 'Bearer ' + token,
                 'Content-Type': 'application/json'
@@ -193,17 +302,17 @@ const TestRideForm = (props) => {
         }).then((response) => {
             if (response.ok) {
                 setComplete(true);
-                showSuccessToast("Successfully setup test ride form")
-                navigation.navigate(Routes.HOME_SCREEN)
+                !patchMode ? showSuccessToast("Successfully setup test ride form") : showSuccessToast("Successfully updated test ride form");
+                navigation.navigate(Routes.TEST_RIDE_LIST_SCREEN)
                 navigation.reset({
                     index: 0,
-                    routes: [{ name: 'HOME' }]
+                    routes: [{ name: 'TEST_RIDE_LIST' }]
                 })
             }
             else {
                 if (response.status == 401) {
                     showErrorToast("User session expired!")
-                    navigation.navigate(Routes.LOGIN_STACK);
+                    signOut();
                 }
                 response.json().then((body) => {
                     errorMessage = body.error.message;
@@ -215,6 +324,56 @@ const TestRideForm = (props) => {
         })
     }
 
+    const component1 = () =>
+        <View style={{ flexDirection: 'row' }}>
+            <IconX
+                style={{ marginRight: 8 }}
+                origin={ICON_TYPE.MATERIAL_ICONS}
+                name={'assignment'}
+                color="black"
+            />
+            <Text style={{ fontFamily: Fonts.type.semiBold, fontSize: 16 }}>
+                Lead
+            </Text>
+        </View>
+    const component2 = () =>
+        <View style={{ flexDirection: 'row' }}>
+            <IconX
+                style={{ marginRight: 8 }}
+                origin={ICON_TYPE.ICONICONS}
+                name={'book-outline'}
+                color="black"
+            />
+            <Text style={{ fontFamily: Fonts.type.semiBold, fontSize: 16 }}>Booking
+            </Text>
+        </View>
+    const component3 = () =>
+        <View style={{ flexDirection: 'row' }}>
+            <IconX
+                style={{ marginRight: 8 }}
+                origin={ICON_TYPE.ICONICONS}
+                name={'call-outline'}
+                color="black"
+            />
+            <Text style={{ fontFamily: Fonts.type.semiBold, fontSize: 16 }}>
+                Follow Up
+            </Text>
+        </View>
+    const [index, setIndex] = React.useState(1);
+    const buttons = [{ element: component1 }, { element: component2 }, { element: component3 }]
+
+    const updateIndex = (selectedIndex) => {
+        console.log("selected index is", selectedIndex);
+        setIndex(selectedIndex);
+        if (selectedIndex == 0) {
+            navigation.navigate(Routes.LEAD_SCREEN)
+        }
+        if (selectedIndex == 1) {
+            navigation.navigate(Routes.BOOKING_FORM_SCREEN)
+        }
+    }
+    const { selectedIndex } = index;
+
 
     return (
         <SafeAreaView style={{ width: '100%', flex: 1, backgroundColor: '#ffffff' }}>
@@ -224,27 +383,25 @@ const TestRideForm = (props) => {
 
                 <View style={styles.body}>
                     <HeaderText>Test Ride</HeaderText>
+                    {editMode ?
+                        <TouchableOpacity onPress={() => {
+                            setEditMode(false);
+                            setReload(true);
+                            setPatchMode(true);
+                            setPostUrl(BASE_URL + OPPORTUNITY_ENDPOINT + '(' + bookingId + ')');
+                        }}>
+                            <Text style={{ alignSelf: "flex-end", fontSize: 20, fontFamily: Fonts.type.primary, paddingEnd: 16 }}>Edit</Text>
+                        </TouchableOpacity>
+                        : null}
                 </View>
 
-                <View style={{ marginBottom: 82, paddingBottom: 16 }}>
-                    <ProgressSteps
-                        style={{ flex: 1 }}
-                        topOffset={10}
-                        activeStepIconBorderColor="red"
-                        completedProgressBarColor="red"
-                        activeLabelColor="red"
-                        isComplete={complete}
-                        activeStep={2}>
-                        <ProgressStep label="Lead Info" nextBtnText="" previousBtnText="" removeBtnRow={true}>
+                <View style={{ paddingBottom: 16 }}>
+                    <ButtonGroup
+                        onPress={updateIndex}
+                        selectedIndex={selectedIndex}
+                        buttons={buttons}
+                        containerStyle={{ height: 32 }} />
 
-                        </ProgressStep>
-                        <ProgressStep label="Opportunity" nextBtnText="" previousBtnText="" removeBtnRow={true}>
-
-                        </ProgressStep>
-                        <ProgressStep label="Confirm" nextBtnText="" previousBtnText="" finishBtnText="" removeBtnRow={true}>
-
-                        </ProgressStep>
-                    </ProgressSteps>
                 </View>
 
                 <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
@@ -264,19 +421,28 @@ const TestRideForm = (props) => {
                             <SafeAreaView style={{ marginLeft: 16, marginTop: 13, flex: 1 }}>
 
                                 <StyledInput
+                                    uneditable={editMode ? true : false}
                                     label="License No."
                                     formikProps={formikProps}
-                                    formikKey="licenseNumber" />
+                                    formikKey="licenseNumber"
+                                    passedValue={dataOptionSet.licenseNumber}
+                                />
 
                                 <StyledInput
+                                    uneditable={editMode ? true : false}
                                     label="Existing Vehicle"
                                     formikProps={formikProps}
-                                    formikKey="existingVehicle" />
+                                    formikKey="existingVehicle"
+                                    passedValue={dataOptionSet.existingVehicle}
+                                />
 
                                 <StyledInput
+                                    uneditable={editMode ? true : false}
                                     label="Feedback"
                                     formikProps={formikProps}
-                                    formikKey="feedback" />
+                                    formikKey="feedback"
+                                    passedValue={dataOptionSet.feedback}
+                                />
 
 
 
@@ -327,6 +493,7 @@ const TestRideForm = (props) => {
 const styles = StyleSheet.create({
     textLabelStyle: {
         fontSize: 15,
+        fontFamily: Fonts.type.primary,
         lineHeight: 14,
         marginTop: 2,
         marginBottom: 4,

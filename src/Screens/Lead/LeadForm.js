@@ -4,15 +4,15 @@ import { Formik } from 'formik';
 import React, { useState } from 'react';
 import { Dimensions, SafeAreaView, StatusBar, StyleSheet, Text, TextInput, View } from 'react-native';
 import { BASE_URL, LEADS_ENDPOINT, PRODUCTS_ENDPOINT, QUALIFY_ENDPOINT } from 'react-native-dotenv';
-import { ScrollView } from 'react-native-gesture-handler';
+import { ScrollView, TouchableOpacity } from 'react-native-gesture-handler';
 import { RadioButton } from 'react-native-paper';
 import RNPickerSelect from 'react-native-picker-select';
 import * as yup from 'yup';
 import { ButtonX, HeaderButton } from '../../Components';
 import HeaderText from '../../Components/HeaderText';
 import useTranslation from '../../i18n';
-import { ICON_TYPE } from '../../Icons';
-import { showErrorToast, showSuccessToast } from '../../Lib/Toast';
+import { IconX, ICON_TYPE } from '../../Icons';
+import { showErrorToast, showInfoToast, showSuccessToast } from '../../Lib/Toast';
 import Routes from '../../Navigation/Routes';
 import defaultTheme from '../../Themes';
 import theme from '../../Themes/configs/default';
@@ -29,6 +29,9 @@ import { OccupationConstants } from '../../Utils/OccupationConstants';
 import { RidingConstants } from '../../Utils/RidingConstants';
 import { ProgressSteps, ProgressStep } from 'react-native-progress-steps';
 import AnimatedLoader from "react-native-animated-loader";
+import { AuthContext } from '../../Components/context';
+import { set } from 'lodash';
+import { ButtonGroup } from 'react-native-elements';
 
 var productList = [];
 var colorList = [];
@@ -109,13 +112,15 @@ const dropDownStyleFull = {
     shadowOpacity: 0.5,
 }
 
-const StyledInput = ({ label, formikProps, formikKey, ...rest }) => {
+const StyledInput = ({ label, formikProps, uneditable, passedValue, formikKey, ...rest }) => {
+
     const inputStyles = {
         height: 45,
         width: width / 1.115,
         fontSize: 14,
         fontFamily: "WorkSans-Medium",
         lineHeight: 16,
+        color: !uneditable ? "#333333" : "#333333",
         alignSelf: 'stretch',
         alignItems: 'center',
         backgroundColor: '#ffffff',
@@ -183,6 +188,8 @@ const StyledInput = ({ label, formikProps, formikKey, ...rest }) => {
                 <Text style={styles.textLabelStyle}>{label}</Text>
                 <View >
                     <TextInput
+                        defaultValue={passedValue}
+                        editable={uneditable ? false : true}
                         style={inputStyles}
                         underlineColorAndroid="transparent"
                         onChangeText={
@@ -226,15 +233,15 @@ const validationSchema = yup.object().shape({
 
 });
 
-
 const LeadForm = (props) => {
 
-
+    const { signOut } = React.useContext(AuthContext);
     const navigation = useNavigation();
     const route = useRoute();
     const { t } = useTranslation();
     var firstName, lastName, countryCode, phoneNumber;
     const [flag, setFlag] = React.useState(false);
+    const [editMode, setEditMode] = React.useState(false);
     const [dataOptionSet, setDataOptionSet] = React.useState({
         products: [],
         leadNature: undefined,
@@ -252,17 +259,31 @@ const LeadForm = (props) => {
         previousModel: undefined,
         reasonToChoose: undefined,
         reasonToReject: undefined,
+        gender: undefined,
+        model: undefined,
+        color: undefined,
+        companyName: undefined,
+        requiredQuantity: undefined,
+        businessContact: undefined,
+        jobTitle: undefined,
+        campaign: undefined,
+        otherModel: undefined,
+        opportunityId: undefined,
     });
-    const [token, setToken] = useState();
+
+    const [token, setToken] = useState(undefined);
     const [contactKey, setContactKey] = useState();
     const [productsListData, setProductsListData] = useState([
 
     ]);
     const [productName, setProductName] = useState();
-    const [colorName, setColorName] = useState();
+    const [colorName, setColorName] = useState(undefined);
     const [colorsListData, setColorsListData] = useState([
 
     ]);
+    const [modelReload, setModelReload] = React.useState(false);
+    const [patchMode, setPatchMode] = React.useState(false);
+    const [postUrl, setPostUrl] = React.useState(BASE_URL + LEADS_ENDPOINT);
     const [checked, setChecked] = useState(GenderConstants[0].value);
     const [formSuccess, setFormSuccess] = useState(false);
     const [qualify, setQualify] = useState(false);
@@ -290,6 +311,19 @@ const LeadForm = (props) => {
             },
         });
     }, [navigation, theme.colors.headerTitle]);
+
+
+
+    let leadId = '';
+    if (route.params !== undefined) {
+        if (route.params.flag == "edit") {
+            leadId = route.params.leadId;
+            console.log("passed lead id is", route.params.leadId);
+        }
+    }
+
+
+
     React.useEffect(() => {
 
     }, [flag]);
@@ -297,15 +331,21 @@ const LeadForm = (props) => {
     React.useEffect((async) => {
         retrieveToken();
 
-    }, [])
+    }, [modelReload])
+
+
 
     React.useEffect((async) => {
         retrieveContactId();
 
     }, [])
 
+
+
     React.useEffect(() => {
+
         fetchColorData(token);
+
 
     }, [productsListData])
 
@@ -314,6 +354,9 @@ const LeadForm = (props) => {
             const value = await AsyncStorage.getItem('@token_key');
             if (value !== null) {
                 setToken(value);
+                if (modelReload == false) {
+                    fetchExistingLead(value)
+                }
                 fetchProducts(value);
                 console.log("token is= " + value);
 
@@ -334,7 +377,83 @@ const LeadForm = (props) => {
         }
     }
 
+    function fetchExistingLead(token) {
+        console.log("lead id is", leadId);
+        let errorMessage = '';
+        if (leadId !== '') {
+            setLoading(true);
+            fetch("https://syakarhonda.api.crm5.dynamics.com/api/data/v9.1/leads(" + leadId + ")", {
+                headers: {
+                    'Authorization': 'Bearer ' + token,
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json',
+                }
+            }).then((res) => {
+                console.log("res code is", res.status);
+                if (res.ok) {
+                    res.json().then(
+                        (resJson) => {
+                            setDataOptionSet({
+                                leadNature: "" + resJson.new_leadnature,
+                                currentVehicle: "" + resJson.new_currentbikescoote,
+                                ridingFor: "" + resJson.agile_ridingfor,
+                                occupation: "" + resJson.agile_occupation,
+                                city: "" + resJson.address1_addresstypecode,
+                                agileCategory: "" + resJson.agile_catogeries,
+                                leadSource: "" + resJson.leadsourcecode,
+                                firstName: resJson.firstname,
+                                lastName: resJson.lastname,
+                                phoneNumber: resJson.mobilephone,
+                                emailAddress: resJson.emailaddress1,
+                                previousModel: resJson.new_previousbikemodel,
+                                reasonToChoose: resJson.agile_reasontochoose,
+                                reasonToReject: resJson.agile_reasonforleaving,
+                                companyName: resJson.companyname,
+                                requiredQuantity: resJson.new_requiredquantity,
+                                businessContact: resJson.new_businesscontact,
+                                jobTitle: resJson.jobtitle,
+                                model: "" + resJson._agile_interestedmodel_value,
+                                campaign: resJson.agile_campaign,
+                                otherModel: resJson.agile_currentothers,
+                                color: resJson._agile_colors_value,
+                                gender: "" + resJson.agile_gender,
+                                opportunityId: resJson._qualifyingopportunityid_value,
+
+                            })
+                            setPassingProp({
+                                firstName: resJson.firstname,
+                                lastName: resJson.lastname,
+                                email: resJson.emailaddress1,
+                                modelId: resJson._agile_interestedmodel_value,
+                                modelColor: colorName !== undefined ? colorName : '',
+                                modelName: productName,
+                                opportunityId: resJson._qualifyingopportunityid_value
+
+                            })
+                            setEditMode(true);
+                            setLoading(false);
+                        })
+                } else {
+                    if (res.status == 401) {
+                        signOut();
+                    }
+
+                    res.json().then((body) => {
+                        errorMessage = body.error.message;
+                        console.log("error message is", errorMessage);
+                    });
+                    console.log("error in edit lead form");
+                }
+
+
+
+            }
+            )
+        }
+    }
+
     async function fetchProducts(token) {
+        setLoading(true);
         console.log("token is", token);
         const res = await fetch(BASE_URL + PRODUCTS_ENDPOINT, {
             method: 'GET',
@@ -351,9 +470,11 @@ const LeadForm = (props) => {
             label: object.name,
             value: object.productid
         }));
+        productList.length = 0;
 
 
-        console.log("product list is", productDataItems);
+        // console.log("product list is", productDataItems);
+        setLoading(false);
     }
 
     async function fetchColorData() {
@@ -392,6 +513,16 @@ const LeadForm = (props) => {
     }
 
     console.log("name of producst is", productsListData);
+
+    const [passingProp, setPassingProp] = React.useState({
+        "firstName": dataOptionSet.firstName,
+        "lastName": dataOptionSet.lastName,
+        "email": dataOptionSet.emailAddress,
+        "modelId": dataOptionSet.model,
+        "modelColor": dataOptionSet.color,
+        "modelName": productName,
+        "opportunityId": dataOptionSet.opportunityId
+    });
 
 
     const onFormSubmit = (values) => {
@@ -498,8 +629,8 @@ const LeadForm = (props) => {
                 'agile_SalePerson@odata.bind': "/contacts(" + contactKey + ")",
             })
         }
-        fetch(BASE_URL + LEADS_ENDPOINT, {
-            method: 'POST',
+        fetch(postUrl, {
+            method: !patchMode ? 'POST' : 'PATCH',
             headers: {
                 'Authorization': 'Bearer ' + token,
                 'Content-Type': 'application/json'
@@ -508,7 +639,7 @@ const LeadForm = (props) => {
         }).then((response) => {
             if (response.ok) {
                 setLoading(false);
-                showSuccessToast("Successfully setup lead form")
+                !patchMode ? showSuccessToast("Successfully setup lead form") : showSuccessToast("Successfully updated lead form");
                 if (qualify) {
                     setLoading(true);
                     goToQualifyProcess(response.headers.map.location, firstName, lastName, email, productName, colorName, productsListData);
@@ -516,24 +647,26 @@ const LeadForm = (props) => {
                     setLoading(false);
                     console.log("reset")
                     setFormSuccess(true);
-                    navigation.navigate(Routes.HOME_SCREEN)
+                    navigation.navigate(Routes.LEAD_LIST_SCREEN)
                     navigation.reset({
                         index: 0,
-                        routes: [{ name: 'HOME' }]
+                        routes: [{ name: 'LIST_LEAD' }]
                     })
-                    
+
                     productList.length = 0;
                 }
             }
             else {
                 setLoading(false);
-                console.log('response not ok');
-                console.log(response.status);
+                if (response.status == 401) {
+                    showErrorToast("User session expired!")
+                    signOut();
+                }
                 showErrorToast("Error while submitting lead form");
-                response.json().then(value => {
-                    console.log("error is", value);
-                })
-                console.log(response.json());
+                response.json().then((body) => {
+                    errorMessage = body.error.message;
+                    showErrorToast(errorMessage);
+                });
             }
         }
         ).catch(error => {
@@ -562,31 +695,41 @@ const LeadForm = (props) => {
             })
         }).then((response) => {
             if (response.ok) {
-              
+
 
                 response.json().then((responseJson) => {
                     responseJson.value.forEach(items => dataList.push(items))
-                     let opportunityid=dataList[1].opportunityid;
-                     setLoading(false);
-                     showSuccessToast("Lead qualified success");
-                     productList.length = 0;
-                     props.navigation.navigate(Routes.OPPORTUNITY_SCREEN, route.params = {
-                         firstName: firstName,
-                         lastName: lastName,
-                         email: email,
-                         productId: productId,
-                         opportunityId:opportunityid,
-                         model: product,
-                         color: color != undefined ? color : ''
-                     });
+                    let opportunityid = dataList[1].opportunityid;
+                    console.log("opportunity id is", opportunityid);
+                    setLoading(false);
+                    showSuccessToast("Lead qualified success");
+                    productList.length = 0;
+                    setPassingProp({
+                        firstName: firstName,
+                        lastName: lastName,
+                        email: email,
+                        modelId: productId,
+                        opportunityId: opportunityid,
+                        modelName: product,
+                        color: color !== undefined ? color : ''
+                    })
+                    // props.navigation.navigate(Routes.OPPORTUNITY_SCREEN, route.params = {
+                    //     firstName: firstName,
+                    //     lastName: lastName,
+                    //     email: email,
+                    //     productId: productId,
+                    //     opportunityId: opportunityid,
+                    //     model: product,
+                    //     color: color != undefined ? color : ''
+                    // });
                 })
-          
+
             }
             else {
                 setLoading(false)
                 if (response.status == 401) {
                     showErrorToast("User session expired!")
-                    navigation.navigate(Routes.LOGIN_STACK);
+                    signOut();
                 }
                 response.json().then((body) => {
                     errorMessage = body.error.message;
@@ -607,7 +750,7 @@ const LeadForm = (props) => {
         if (flag) {
             container = (
                 <View style={{ flexDirection: 'column' }}>
-                    <Text style={{ marginBottom: -16, marginLeft: 24, marginTop: 16, fontSize: 14, lineHeight: 16, color: '#333333' }}>Color</Text>
+                    <Text style={{ marginBottom: -16, marginLeft: 24, marginTop: 16, fontSize: 14, lineHeight: 16, color: '#333333', fontFamily: Fonts.type.primary }}>Color</Text>
                     <View style={dropDownStyleColor}>
                         <RNPickerSelect
                             items={colorDataItems}
@@ -619,7 +762,7 @@ const LeadForm = (props) => {
                             }
                             }
                             style={pickerSelectStyles}
-                            value={colorsListData}
+                            value={editMode ? dataOptionSet.color : colorsListData}
                             useNativeAndroidPickerStyle={false}
 
                         />
@@ -639,6 +782,8 @@ const LeadForm = (props) => {
         if (dataOptionSet.leadSource === 11) {
             element = (
                 <StyledInput
+                    uneditable={editMode ? true : false}
+                    passedValue={dataOptionSet.campaign}
                     label="Campaigns"
                     formikProps={props}
                     formikKey="campaign"
@@ -656,6 +801,8 @@ const LeadForm = (props) => {
         if (dataOptionSet.currentVehicle == 8) {
             element = (
                 <StyledInput
+                    uneditable={editMode ? true : false}
+                    passedValue={dataOptionSet.otherModel}
                     label="Other Model"
                     formikProps={props}
                     formikKey="otherModel"
@@ -674,10 +821,11 @@ const LeadForm = (props) => {
             element = (
                 <View >
                     <View style={{ flexDirection: 'column', marginTop: 8 }}>
-                        <Text style={{ marginBottom: -16, fontSize: 14, lineHeight: 16, color: '#333333' }}>Riding For</Text>
+                        <Text style={{ marginBottom: -16, fontSize: 14, lineHeight: 16, color: '#333333', fontFamily: Fonts.type.primary }}>Riding For</Text>
                         <View style={dropDownStyleFull}>
 
                             <RNPickerSelect
+                                disabled={editMode ? true : false}
                                 items={RidingConstants}
                                 onValueChange={value => {
                                     setDataOptionSet({
@@ -694,6 +842,8 @@ const LeadForm = (props) => {
                     <View style={{ marginTop: 10 }}>
 
                         <StyledInput
+                            uneditable={editMode ? true : false}
+                            passedValue={dataOptionSet.previousModel}
                             label="Previous Model"
                             formikProps={props}
                             formikKey="previousModel"
@@ -714,21 +864,29 @@ const LeadForm = (props) => {
             element = (
                 <View>
                     <StyledInput
+                        uneditable={editMode ? true : false}
+                        passedValue={dataOptionSet.companyName}
                         label="Company Name"
                         formikProps={props}
                         formikKey="companyName"
                     />
                     <StyledInput
+                        uneditable={editMode ? true : false}
+                        passedValue={dataOptionSet.requiredQuantity}
                         label="Required Quantity"
                         formikProps={props}
                         formikKey="requiredQuantity"
                     />
                     <StyledInput
+                        uneditable={editMode ? true : false}
+                        passedValue={dataOptionSet.businessContact}
                         label="Business Contact No."
                         formikProps={props}
                         formikKey="businessContact"
                     />
                     <StyledInput
+                        uneditable={editMode ? true : false}
+                        passedValue={dataOptionSet.jobTitle}
                         label="Job Title"
                         formikProps={props}
                         formikKey="jobTitle"
@@ -750,8 +908,69 @@ const LeadForm = (props) => {
 
     }
 
+    const component1 = () =>
+        <View style={{ flexDirection: 'row' }}>
+            <IconX
+                style={{ marginRight: 8 }}
+                origin={ICON_TYPE.ICONICONS}
+                name={'book-outline'}
+                color="black"
+            />
+            <Text style={{ fontFamily: Fonts.type.semiBold, fontSize: 16 }}>Booking</Text>
+        </View>
+    const component2 = () =>
+        <View style={{ flexDirection: 'row' }}>
+            <IconX
+                style={{ marginRight: 8 }}
+                origin={ICON_TYPE.ICONICONS}
+                name={'bicycle-outline'}
+                color="black"
+            />
+            <Text style={{ fontFamily: Fonts.type.semiBold, fontSize: 16 }}>Test Ride</Text>
+        </View>
+    const component3 = () =>
+        <View style={{ flexDirection: 'row' }}>
+            <IconX
+                style={{ marginRight: 8 }}
+                origin={ICON_TYPE.MATERIAL_ICONS}
+                name={'assignment'}
+                color="black"
+            />
+            <Text style={{ fontFamily: Fonts.type.semiBold, fontSize: 16 }}>Assign</Text>
+        </View>
+    const [index, setIndex] = React.useState(1);
+    const buttons = [{ element: component1 }, { element: component2 }, { element: component3 }]
+
+    const updateIndex = (selectedIndex) => {
+        console.log("selected index is", selectedIndex);
+        setIndex(selectedIndex);
+        if (selectedIndex == 0) {
+            if (dataOptionSet.opportunityId !== null) {
+                navigation.navigate(Routes.BOOKING_FORM_SCREEN, route.params = {
+                    passingProp: passingProp
+                })
+            } else {
+                showInfoToast("Lead not qualified. Please qualify to proceed to booking")
+            }
+        }
+        if (selectedIndex == 1) {
+            if (dataOptionSet.opportunityId !== null) {
+                navigation.navigate(Routes.TEST_RIDE_FORM_SCREEN, route.params = {
+                    passingProp: passingProp,
+                    flag: 2
+                })
+            } else {
+                showInfoToast("Lead not qualified. Please qualify to proceed for test ride")
+            }
+        }
+    }
+    const { selectedIndex } = index;
+
+    console.log("token is", token);
+    console.log("product lisr data is", productsListData);
+
     return (
-        <SafeAreaView style={{ width: '100%', flex: 1,backgroundColor:"#ffffff" }}>
+        <SafeAreaView style={{ width: '100%', flex: 1, backgroundColor: "#ffffff" }}>
 
             <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
             {loading &&
@@ -769,34 +988,36 @@ const LeadForm = (props) => {
 
                     <View style={styles.body}>
                         <HeaderText>New Lead</HeaderText>
+                        {editMode ?
+                            <TouchableOpacity onPress={() => {
+                                setEditMode(false);
+                                setModelReload(true);
+                                setPatchMode(true);
+                                setPostUrl(BASE_URL + LEADS_ENDPOINT + '(' + leadId + ')');
+                            }}>
+                                <Text style={{ alignSelf: "flex-end", fontSize: 20, fontFamily: Fonts.type.primary, paddingEnd: 16 }}>Edit</Text>
+                            </TouchableOpacity>
+                            : null}
                     </View>
-                    <View style={{ marginBottom: 82, paddingBottom: 16 }}>
-                        <ProgressSteps
+                    <View style={{ marginBottom: 42, paddingBottom: 16, flex: 1 }}>
 
-                            topOffset={10}
-                            activeStepIconBorderColor="red"
-                            completedProgressBarColor="red"
-                            activeLabelColor="red"
-                            activeStep={0}>
-                            <ProgressStep label="Lead Info" nextBtnText="" previousBtnText="" removeBtnRow={true}>
+                        <ButtonGroup
+                            onPress={updateIndex}
+                            selectedIndex={selectedIndex}
+                            buttons={buttons}
+                            containerStyle={{ height: 32 }} />
 
-                            </ProgressStep>
-                            <ProgressStep label="Opportunity" nextBtnText="" previousBtnText="" removeBtnRow={true}>
 
-                            </ProgressStep>
-                            <ProgressStep label="Confirm" nextBtnText="" previousBtnText="" finishBtnText="" removeBtnRow={true}>
 
-                            </ProgressStep>
-                        </ProgressSteps>
                     </View>
                     <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
 
                         <Formik
                             initialValues={{
-                                firstName: '',
-                                lastName: '',
-                                phoneNumber: '',
-                                emailAddress: '',
+                                firstName: editMode ? '' : dataOptionSet.firstName,
+                                lastName: editMode ? '' : dataOptionSet.lastName,
+                                phoneNumber: editMode ? '' : dataOptionSet.phoneNumber,
+                                emailAddress: editMode ? '' : dataOptionSet.emailAddress,
                                 nextButton: false,
 
                             }}
@@ -810,10 +1031,10 @@ const LeadForm = (props) => {
 
                                     <View style={{ flexDirection: 'row' }}>
                                         <View style={{ flexDirection: 'column' }}>
-                                            <Text style={{ marginBottom: -16, fontSize: 14, lineHeight: 16, color: '#333333' }}>Lead Nature</Text>
+                                            <Text style={{ marginBottom: -16, fontSize: 14, lineHeight: 16, color: '#333333', fontFamily: Fonts.type.primary }}>Lead Nature</Text>
                                             <View style={dropDownStyle}>
                                                 <RNPickerSelect
-
+                                                    disabled={editMode ? true : false}
                                                     items={LeadNatureConstants}
                                                     onValueChange={value => {
                                                         setDataOptionSet({
@@ -829,16 +1050,17 @@ const LeadForm = (props) => {
                                         </View>
 
                                         <View style={{ flexDirection: 'column' }}>
-                                            <Text style={{ marginBottom: -16, fontSize: 14, lineHeight: 16, color: '#333333' }}>Lead Source</Text>
+                                            <Text style={{ marginBottom: -16, fontSize: 14, lineHeight: 16, color: '#333333', fontFamily: Fonts.type.primary }}>Lead Source</Text>
                                             <View style={dropDownStyle}>
                                                 <RNPickerSelect
-
+                                                    disabled={editMode ? true : false}
                                                     items={LeadSourceConstants}
                                                     onValueChange={value => {
                                                         setDataOptionSet({
                                                             ...dataOptionSet, leadSource: value,
                                                         });
                                                     }}
+
                                                     style={pickerSelectStyles}
                                                     value={dataOptionSet.leadSource}
                                                     useNativeAndroidPickerStyle={false}
@@ -853,10 +1075,11 @@ const LeadForm = (props) => {
                                     </View>
 
                                     <View style={{ flexDirection: 'column' }}>
-                                        <Text style={{ marginBottom: -16, marginTop: 8, fontSize: 14, lineHeight: 16, color: '#333333' }}>Categories</Text>
+                                        <Text style={{ marginBottom: -16, marginTop: 8, fontSize: 14, lineHeight: 16, color: '#333333', fontFamily: Fonts.type.primary }}>Categories</Text>
                                         <View style={dropDownStyleFull}>
 
                                             <RNPickerSelect
+                                                disabled={editMode ? true : false}
                                                 items={AgileCategoryConstants}
                                                 onValueChange={(value, label) => {
                                                     setDataOptionSet({
@@ -874,17 +1097,28 @@ const LeadForm = (props) => {
 
                                     <View style={{ flexDirection: 'row' }}>
                                         <View style={{ flexDirection: 'column' }}>
-                                            <Text style={{ marginBottom: -16, marginTop: 16, fontSize: 14, lineHeight: 16, color: '#333333' }}>Model</Text>
+                                            <Text style={{ marginBottom: -16, marginTop: 16, fontSize: 14, lineHeight: 16, color: '#333333', fontFamily: Fonts.type.primary }}>Model</Text>
                                             <View style={dropDownStyleModel}>
                                                 <RNPickerSelect
+                                                    disabled={editMode ? true : false}
                                                     items={productDataItems}
                                                     onValueChange={(value, key) => {
                                                         setProductsListData(value);
-                                                        setProductName(productDataItems[key - 1].label);
+                                                        if (productDataItems !== undefined) {
+                                                            if (key !== 0) {
+                                                                console.log("product data item is", productDataItems);
+                                                                console.log("productkey is", key);
+                                                                setProductName(productDataItems[key - 1].label);
+                                                            } else {
+                                                                console.log("product data item is", productDataItems);
+                                                                console.log("productkey is", key);
+                                                                setProductName(productDataItems[key].label);
+                                                            }
+                                                        }
                                                     }
                                                     }
                                                     style={pickerSelectStyles}
-                                                    value={productsListData}
+                                                    value={editMode ? dataOptionSet.model : productsListData}
                                                     useNativeAndroidPickerStyle={false}
 
                                                 />
@@ -897,57 +1131,67 @@ const LeadForm = (props) => {
                                         <View style={{ flexDirection: 'row' }}>
 
                                             <RadioButton
-                                                color="black"
-                                                uncheckedColor="black"
+                                                color="red"
+                                                uncheckedColor="red"
                                                 value={GenderConstants[0].value}
-                                                status={checked === GenderConstants[0].value ? 'checked' : 'unchecked'}
+                                                status={!editMode ? checked === GenderConstants[0].value ? 'checked' : 'unchecked' : dataOptionSet.gender === "1" ? 'checked' : 'unchecked'}
                                                 onPress={() => setChecked(GenderConstants[0].value)}
                                             />
-                                            <Text style={{ color: '#979797', alignSelf: 'center' }}>Mr</Text>
+                                            <Text style={{ color: '#333333', alignSelf: 'center', fontFamily: Fonts.type.primary }}>Mr</Text>
                                         </View>
                                         <View style={{ flexDirection: 'row', alignSelf: 'center', alignContent: 'space-around' }}>
 
                                             <RadioButton
-                                                color="black"
-                                                uncheckedColor="black"
+                                                color="red"
+                                                uncheckedColor="red"
                                                 value={GenderConstants[1].value}
-                                                status={checked === GenderConstants[1].value ? 'checked' : 'unchecked'}
+                                                status={!editMode ? checked === GenderConstants[1].value ? 'checked' : 'unchecked' : dataOptionSet.gender === "2" ? 'checked' : 'unchecked'}
                                                 onPress={() => setChecked(GenderConstants[1].value)}
                                             />
-                                            <Text style={{ color: '#979797', alignSelf: 'center' }}>Mrs</Text>
+                                            <Text style={{ color: '#333333', alignSelf: 'center', fontFamily: Fonts.type.primary }}>Mrs</Text>
                                         </View>
                                     </View>
 
 
                                     <View style={{ flexDirection: 'row', marginTop: 8 }}>
                                         <StyledInput
+                                            uneditable={editMode ? true : false}
                                             label="First Name"
                                             formikProps={formikProps}
                                             formikKey="firstName"
+                                            passedValue={dataOptionSet.firstName}
                                         />
 
                                         <StyledInput
+                                            uneditable={editMode ? true : false}
                                             label="Last Name"
                                             formikProps={formikProps}
-                                            formikKey="lastName" />
+                                            formikKey="lastName"
+                                            passedValue={dataOptionSet.lastName}
+                                        />
                                     </View>
                                     <StyledInput
+                                        uneditable={editMode ? true : false}
                                         label="Mobile Number"
                                         formikProps={formikProps}
                                         formikKey="phoneNumber"
+                                        passedValue={dataOptionSet.phoneNumber}
                                     />
 
                                     <StyledInput
+                                        uneditable={editMode ? true : false}
                                         label="Email Address"
                                         formikProps={formikProps}
                                         formikKey="emailAddress"
+                                        passedValue={dataOptionSet.emailAddress}
                                     />
 
                                     <View style={{ flexDirection: 'column', marginBottom: 16 }}>
-                                        <Text style={{ marginBottom: -16, fontSize: 14, lineHeight: 16, color: '#333333' }}>Occupation</Text>
+                                        <Text style={{ marginBottom: -16, fontSize: 14, lineHeight: 16, color: '#333333', fontFamily: Fonts.type.primary }}>Occupation</Text>
                                         <View style={dropDownStyleFull}>
 
                                             <RNPickerSelect
+                                                disabled={editMode ? true : false}
                                                 items={OccupationConstants}
                                                 onValueChange={value => {
                                                     setDataOptionSet({
@@ -963,22 +1207,25 @@ const LeadForm = (props) => {
                                     </View>
 
                                     <StyledInput
+                                        uneditable={editMode ? true : false}
                                         label="Address"
                                         formikProps={formikProps}
                                         formikKey="addeess"
                                     />
                                     <View style={{ flexDirection: 'row' }}>
                                         <StyledInput
+                                            uneditable={editMode ? true : false}
                                             label="Street"
                                             formikProps={formikProps}
                                             formikKey="street"
                                         />
 
                                         <View style={{ flexDirection: 'column' }}>
-                                            <Text style={{ marginBottom: -16, fontSize: 14, lineHeight: 16, color: '#333333' }}>City</Text>
+                                            <Text style={{ marginBottom: -16, fontSize: 14, lineHeight: 16, color: '#333333', fontFamily: Fonts.type.primary }}>City</Text>
                                             <View style={dropDownStyle}>
 
                                                 <RNPickerSelect
+                                                    disabled={editMode ? true : false}
                                                     items={CityConstants}
                                                     onValueChange={value => {
                                                         setDataOptionSet({
@@ -1000,15 +1247,16 @@ const LeadForm = (props) => {
                                     <Text style={{
                                         fontSize: 24,
                                         marginTop: 8,
-                                        fontFamily: Fonts.type.bold
+                                        fontFamily: Fonts.type.semiBold
 
                                     }}>Current Vehicle Information</Text>
 
                                     <View style={{ flexDirection: 'column', marginTop: 24 }}>
-                                        <Text style={{ marginBottom: -16, fontSize: 14, lineHeight: 16, color: '#333333' }}>Current Bike/Scooter</Text>
+                                        <Text style={{ marginBottom: -16, fontSize: 14, lineHeight: 16, color: '#333333', fontFamily: Fonts.type.primary }}>Current Bike/Scooter</Text>
                                         <View style={dropDownStyleFull}>
 
                                             <RNPickerSelect
+                                                disabled={editMode ? true : false}
                                                 items={CurrentVehicleConstants}
                                                 onValueChange={value => {
                                                     setDataOptionSet({
@@ -1032,10 +1280,11 @@ const LeadForm = (props) => {
                                     </View>
 
                                     <View style={{ flexDirection: 'column' }}>
-                                        <Text style={{ marginBottom: -16, fontSize: 14, lineHeight: 16, color: '#333333' }}>Reason To Choose</Text>
+                                        <Text style={{ marginBottom: -16, fontSize: 14, lineHeight: 16, color: '#333333', fontFamily: Fonts.type.primary }}>Reason To Choose</Text>
                                         <View style={dropDownStyleFull}>
 
                                             <RNPickerSelect
+                                                disabled={editMode ? true : false}
                                                 items={ChooseReasonConstants}
                                                 onValueChange={value => {
                                                     setDataOptionSet({
@@ -1050,10 +1299,11 @@ const LeadForm = (props) => {
                                         </View>
                                     </View>
                                     <View style={{ flexDirection: 'column', marginTop: 8 }}>
-                                        <Text style={{ marginBottom: -16, fontSize: 14, lineHeight: 16, color: '#333333' }}>Reason To Leave</Text>
+                                        <Text style={{ marginBottom: -16, fontSize: 14, lineHeight: 16, color: '#333333', fontFamily: Fonts.type.primary }}>Reason To Leave</Text>
                                         <View style={dropDownStyleFull}>
 
                                             <RNPickerSelect
+                                                disabled={editMode ? true : false}
                                                 items={RejectReasonConstants}
                                                 onValueChange={value => {
                                                     setDataOptionSet({
@@ -1067,6 +1317,7 @@ const LeadForm = (props) => {
                                             />
                                         </View>
                                     </View>
+
 
 
                                     <View style={{
@@ -1092,7 +1343,7 @@ const LeadForm = (props) => {
                                             style={styles.ovalButtonQualify}
                                             color={defaultTheme.colors.qualify}
                                             onPress={() => qualifyLead(formikProps)}
-                                            label={t('Next')}
+                                            label={t('Qualify')}
                                         />
 
                                     </View>
@@ -1114,6 +1365,7 @@ const LeadForm = (props) => {
 const styles = StyleSheet.create({
     textLabelStyle: {
         fontSize: 14,
+        fontFamily: Fonts.type.primary,
         lineHeight: 16,
         marginTop: 2,
         marginBottom: 4,
@@ -1227,8 +1479,6 @@ const styles = StyleSheet.create({
 const pickerSelectStyles = StyleSheet.create({
     inputIOS: {
         fontSize: 12,
-
-
         lineHeight: 14,
         marginTop: 2,
         marginBottom: 4,
@@ -1239,10 +1489,10 @@ const pickerSelectStyles = StyleSheet.create({
     inputAndroid: {
         fontSize: 14,
         paddingVertical: 8,
-
-
+        marginLeft: 8,
+        fontFamily: Fonts.type.primary,
         borderRadius: 8,
-        color: 'black',
+        color: '#333333',
         // to ensure the text is never behind the icon
     },
 });

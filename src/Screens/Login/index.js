@@ -28,6 +28,7 @@ import AsyncStorage from '@react-native-community/async-storage';
 import { element } from 'prop-types';
 import { TokenContext } from '../App/TokenProvider';
 import AnimatedLoader from "react-native-animated-loader";
+import { AuthContext } from '../../Components/context';
 
 var dataList = [];
 
@@ -37,7 +38,7 @@ export default () => {
   //const {login} = useAuth();
   const { theme } = useAppTheme();
   const navigation = useNavigation();
-
+  const { signIn } = React.useContext(AuthContext);
   const inputUserName = useRef();
   const inputPassword = useRef();
 
@@ -54,9 +55,8 @@ export default () => {
     password: state.login.password,
     status: state.login.status,
   }));
-  const[load,setLoad]=React.useState(false);
-  const usernameGlobal = React.createContext(username);
-  const token = React.useContext(TokenContext)
+  const [load, setLoad] = React.useState(false);
+  const[token,setToken]=React.useState();
 
   const loginUser = () => {
     Keyboard.dismiss();
@@ -96,6 +96,7 @@ export default () => {
       body: formBody
     }).then((response) => response.json())
       .then((responseData) => {
+       
         { storeToken(responseData.access_token, props.username) }
         console.log("Response data is" + responseData.access_token);
         { stepToSignIn(responseData.access_token, props) }
@@ -128,7 +129,7 @@ export default () => {
         responseJson.value.forEach(items => dataList.push(items))
         dataList.push(responseJson.value);
         console.log("Data is", dataList[0].firstname);
-        { checkAuth(otherProps) }
+        { checkAuth(token,otherProps) }
       })
   }
 
@@ -139,9 +140,8 @@ export default () => {
       console.log("error", e);
     }
   }
-  const checkAuth = (props) => {
+  const checkAuth = (token,props) => {
     let contains = false;
-    console.log("props is", props.username);
     const finalData = dataList.map(item => item.firstname + item.agile_password).find(item => item === props.username + props.password)
     dataList.filter(item => item.firstname + item.agile_password === props.username + props.password).map((value) => { storeContactId(value.contactid) });
     console.log("final data is ", finalData);
@@ -149,7 +149,8 @@ export default () => {
 
     if (finalData === props.username + props.password) {
       setLoad(false);
-      navigation.navigate(Routes.MAIN_APP, { username: username })
+      signIn(token);
+      //navigation.navigate(Routes.HOME_SCREEN, { username: username })
     }
     else {
       setLoad(false);
@@ -167,7 +168,7 @@ export default () => {
   return (
     <Container bg="red">
       {load &&
-      
+
         <AnimatedLoader
           visible={true}
           overlayColor="transparent"
@@ -175,7 +176,7 @@ export default () => {
           animationStyle={styles.lottie}
           speed={1}
         />
-        
+
       }
       {!load &&
         <LoadingActionContainer>
@@ -261,7 +262,7 @@ const styles = StyleSheet.create({
     borderRadius: 24
   },
   lottie: {
-    
+
     width: 100,
     height: 100
   },

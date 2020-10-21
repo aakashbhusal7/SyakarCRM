@@ -4,14 +4,14 @@ import { Formik } from 'formik';
 import React, { useState } from 'react';
 import { Dimensions, SafeAreaView, ScrollView, StatusBar, StyleSheet, Text, TextInput, View } from 'react-native';
 import { BASE_URL, CURRENCY_ENDPOINT, OPPORTUNITYPRODUCT_ENDPOINT, OPPORTUNITY_ENDPOINT, PRICE_ENDPOINT, PRODUCTS_ENDPOINT } from 'react-native-dotenv';
-import { Overlay } from 'react-native-elements';
+import { ButtonGroup, Overlay } from 'react-native-elements';
 import RNPickerSelect from 'react-native-picker-select';
 import { ProgressStep, ProgressSteps } from 'react-native-progress-steps';
 import * as yup from 'yup';
 import { ButtonX, HeaderButton } from '../../Components';
 import HeaderText from '../../Components/HeaderText';
 import useTranslation from '../../i18n';
-import { ICON_TYPE } from '../../Icons';
+import { IconX, ICON_TYPE } from '../../Icons';
 import { showErrorToast, showSuccessToast } from '../../Lib/Toast';
 import Routes from '../../Navigation/Routes';
 import defaultTheme from '../../Themes';
@@ -26,6 +26,8 @@ import { InterestConstants } from '../../Utils/OpportunityConstants/InterestCons
 import { OverrideenConstants } from '../../Utils/ProductConstants./OverriddenConstants';
 import { PriceOverrideConstants } from '../../Utils/ProductConstants./PriceOverrideConstants';
 import AnimatedLoader from "react-native-animated-loader";
+import { TouchableOpacity } from 'react-native-gesture-handler';
+import { AuthContext } from '../../Components/context';
 
 var width = Dimensions.get('window').width;
 var currencyList = [];
@@ -108,9 +110,9 @@ const StyledInput = ({ label, formikProps, uneditable, passedValue, formikKey, t
     const inputStyles = {
         height: 45,
         width: type == 'modal' ? width / 1.30 : width / 1.115,
-        color: !uneditable ? "black" : "#979797",
+        color: !uneditable ? "#333333" : "#333333",
         fontSize: 14,
-        fontFamily: "WorkSans-Medium",
+        fontFamily: Fonts.type.primary,
         lineHeight: 16,
         alignSelf: 'stretch',
         alignItems: 'center',
@@ -131,7 +133,7 @@ const StyledInput = ({ label, formikProps, uneditable, passedValue, formikKey, t
         marginLeft: 0,
         lineHeight: 12,
         marginBottom: 0,
-        fontFamily: "WorkSans-Regular",
+        fontFamily: Fonts.type.primary,
         alignItems: 'center'
     };
     const errorStylesLastName = {
@@ -139,7 +141,7 @@ const StyledInput = ({ label, formikProps, uneditable, passedValue, formikKey, t
         fontSize: 12,
         lineHeight: 12,
         marginLeft: 4,
-        fontFamily: "WorkSans-Regular",
+        fontFamily: Fonts.type.primary,
         alignItems: 'center'
     };
     let lastName = false;
@@ -186,8 +188,8 @@ const StyledInput = ({ label, formikProps, uneditable, passedValue, formikKey, t
                 <View >
                     <TextInput
                         style={inputStyles}
-                        value={passedValue}
-                        editable={passedValue !== undefined ? false : true}
+                        defaultValue={passedValue}
+                        editable={uneditable ? false : true}
                         underlineColorAndroid="transparent"
                         onChangeText={
                             formikProps.handleChange(formikKey)
@@ -228,19 +230,30 @@ const validationSchema = yup.object().shape({
 
 const BookingForm = (props) => {
 
+    const { signOut } = React.useContext(AuthContext);
     const navigation = useNavigation();
     const [token, setToken] = useState();
     const [checked, setChecked] = useState(FollowUpConstants[0].value);
     const [interest, setInterest] = useState(InterestConstants[0].value);
     const { t } = useTranslation();
+    const [editMode, setEditMode] = React.useState(false);
+    const [postUrl, setPostUrl] = React.useState(BASE_URL + OPPORTUNITY_ENDPOINT);
     const [dataOptionSet, setDataOptionSet] = React.useState({
         timeFrame: undefined,
         paymentMode: undefined,
         financeChoice: undefined,
         revenue: undefined,
         productOverride: undefined,
-        priceOverride: undefined
+        priceOverride: undefined,
+        advanceAmount: undefined,
+        currency: undefined,
+        priceList: undefined,
+        otherFinance: undefined,
+        opportunityId: undefined,
     });
+    const [reload, setReload] = React.useState(false);
+    const [patchMode, setPatchMode] = React.useState(false);
+
     const [currencyListData, setCurrencyListData] = useState([]);
     const [priceListData, setPriceListData] = useState([]);
     const [unitListData, setUnitListData] = useState([]);
@@ -257,13 +270,14 @@ const BookingForm = (props) => {
     let opportunityId = '';
     let modelName = '';
     if (route.params !== undefined) {
-        productId = route.params.productId;
-        opportunityId = route.params.opportunityId;
-        modelName = route.params.productName;
-        console.log("passed product value is", route.params.productId);
-        console.log("passed opportunity value is", route.params.opportunityId);
-        console.log("passed model value is", route.params.productName);
-
+        console.log("passed params are", route.params.passingProp);
+        if (route.params.passingProp !== undefined) {
+            productId = route.params.passingProp.modelId;
+            opportunityId = route.params.passingProp.opportunityId;
+            modelName = route.params.passingProp.modelName;
+        } else {
+            opportunityId = route.params.bookingId;
+        }
 
     } else {
         console.log("here");
@@ -291,6 +305,15 @@ const BookingForm = (props) => {
             },
         });
     }, [navigation, theme.colors.headerTitle]);
+
+    let bookingId = '';
+    if (route.params !== undefined) {
+        if (route.params.flag == "edit") {
+            bookingId = route.params.bookingId;
+            console.log("passed opportunity id is", route.params.bookingId);
+        }
+    }
+
     React.useEffect((async) => {
         retrieveToken();
 
@@ -305,6 +328,9 @@ const BookingForm = (props) => {
             const value = await AsyncStorage.getItem('@token_key');
             if (value !== null) {
                 setToken(value);
+                if (reload == false) {
+                    fetchExistingBooking(value)
+                }
                 fetchCurrencies(value);
                 fetchPriceList(value);
                 fetchProducts(value);
@@ -357,9 +383,53 @@ const BookingForm = (props) => {
             label: object.isocurrencycode,
             value: object.transactioncurrencyid,
         }));
-
+        currencyList.length = 0;
 
         console.log("currency list is", currencyDataItems);
+    }
+
+    function fetchExistingBooking(token) {
+        let errorMessage = '';
+        if (bookingId !== '') {
+            fetch("https://syakarhonda.api.crm5.dynamics.com/api/data/v9.1/opportunities(" + bookingId + ")", {
+                headers: {
+                    'Authorization': 'Bearer ' + token,
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json',
+                }
+            }).then((res) => {
+                if (res.ok) {
+                    res.json().then(
+                        (resJson) => {
+                            setDataOptionSet({
+                                purchasetimeframe: "" + resJson.purchasetimeframe,
+                                advanceAmount: resJson.new_advanceamt,
+                                paymentMode: "" + resJson.new_modeofpayment,
+                                financeChoice: "" + resJson.agile_financechoices,
+                                currency: "" + resJson._transactioncurrencyid_value,
+                                revenue: "" + resJson.isrevenuesystemcalculated,
+                                otherFinance: resJson.agile_financeothers,
+                                priceList: "" + resJson._pricelevelid_value,
+
+
+                            })
+                            setEditMode(true);
+                            setLoading(false);
+
+                        })
+                } else {
+                    if (res.status == 401) {
+                        signOut();
+                    }
+                    res.json().then((body) => {
+                        errorMessage = body.error.message;
+                        showErrorToast(errorMessage)
+                        console.log("error message is", errorMessage);
+                    });
+                    console.log("error in edit lead form");
+                }
+            })
+        }
     }
 
     async function fetchPriceList(token) {
@@ -380,7 +450,7 @@ const BookingForm = (props) => {
             value: object.pricelevelid,
         }));
 
-
+        priceList.length = 0;
         console.log("price list is", priceListDataItems);
     }
 
@@ -458,12 +528,12 @@ const BookingForm = (props) => {
                 currencyListData.length = 0
                 priceListData.length = 0
                 setLoading(false);
-                showSuccessToast('Booking form submitted successfully')
+                !patchMode ? showSuccessToast("Successfully setup booking form") : showSuccessToast("Successfully updated booking form");
 
-                navigation.navigate(Routes.HOME_SCREEN)
+                navigation.navigate(Routes.BOOKING_LIST_SCREEN)
                 navigation.reset({
                     index: 0,
-                    routes: [{ name: 'HOME' }]
+                    routes: [{ name: 'BOOKING_LIST' }]
                 })
             } else {
                 if (response.status == 401) {
@@ -489,9 +559,11 @@ const BookingForm = (props) => {
         if (dataOptionSet.financeChoice == 2) {
             element = (
                 <StyledInput
+                    uneditable={editMode ? true : false}
                     label="Finance Others"
                     formikProps={props}
                     formikKey="otherFinance"
+                    passedValue={dataOptionSet.otherFinance}
                 />
             )
         }
@@ -523,9 +595,10 @@ const BookingForm = (props) => {
                 (
 
                     <View style={{ flexDirection: 'column' }}>
-                        <Text style={{ marginBottom: -16, fontSize: 14, lineHeight: 16, color: '#333333' }}>Model</Text>
+                        <Text style={{ marginBottom: -16, fontSize: 14, lineHeight: 16, color: '#333333', fontFamily: Fonts.type.primary }}>Model</Text>
                         <View style={dropDownStyleFullModal}>
                             <RNPickerSelect
+
                                 items={productDataItems}
                                 onValueChange={(value, key) => {
                                     setProductsListData(value);
@@ -543,10 +616,10 @@ const BookingForm = (props) => {
         return element;
     }
 
-    const preBookingPost = (value,props) => {
-        console.log("price level value is",value);
-        console.log("other props are",props);
-        let errorMessage='';
+    const preBookingPost = (value, props) => {
+        console.log("price level value is", value);
+        console.log("other props are", props);
+        let errorMessage = '';
         let requestBody = JSON.stringify({
             'transactioncurrencyid@odata.bind': "/transactioncurrencies(" + currencyListData + ")",
             'pricelevelid@odata.bind': "/pricelevels(" + value + ")",
@@ -559,62 +632,115 @@ const BookingForm = (props) => {
             quantity: props.quantity,
 
         })
-        fetch(BASE_URL + OPPORTUNITY_ENDPOINT, {
-            method: 'POST',
-            headers: {
-                'Authorization': 'Bearer ' + token,
-                'Content-Type': 'application/json'
-            },
-            body: requestBody
-        }).then((response) => {
-            if (response.ok) {
-                fetch("https://syakarhonda.api.crm5.dynamics.com/api/data/v9.1/opportunities("+opportunityId+")", {
-                    method: 'PATCH',
-                    headers: {
-                        'Authorization': 'Bearer ' + token,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        'pricelevelid@odata.bind': "/pricelevels(" + value + ")"
-                    })
-                }).then((response) => {
-                    if (response.ok) {
-                        console.log("price level successfully added");
-                        setVisible(true);
-                    } else {
-                        if (response.status == 401) {
-                            showErrorToast("User session expired!")
-                            navigation.navigate(Routes.LOGIN_STACK);
+        if (patchMode) {
+            fetch(BASE_URL + OPPORTUNITY_ENDPOINT + "(" + bookingId + ")", {
+                method: 'PATCH',
+                headers: {
+                    'Authorization': 'Bearer ' + token,
+                    'Content-Type': 'application/json'
+                },
+                body: requestBody
+            }).then((response) => {
+                if (response.ok) {
+                    fetch("https://syakarhonda.api.crm5.dynamics.com/api/data/v9.1/opportunities(" + bookingId + ")", {
+                        method: 'PATCH',
+                        headers: {
+                            'Authorization': 'Bearer ' + token,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            'pricelevelid@odata.bind': "/pricelevels(" + value + ")"
+                        })
+                    }).then((response) => {
+                        if (response.ok) {
+                            console.log("price level successfully added");
+                            setVisible(true);
+                        } else {
+                            if (response.status == 401) {
+                                showErrorToast("User session expired!")
+                                navigation.navigate(Routes.LOGIN_STACK);
+                            }
+                            response.json().then((body) => {
+                                errorMessage = body.error.message;
+                                showErrorToast(errorMessage);
+                            });
+
+
+
                         }
-                        response.json().then((body) => {
-                            errorMessage = body.error.message;
-                            showErrorToast(errorMessage);
-                        });
-
-
-
+                    })
+                } else {
+                    if (response.status == 401) {
+                        showErrorToast("User session expired!")
+                        navigation.navigate(Routes.LOGIN_STACK);
                     }
-                })
-            } else {
-                if (response.status == 401) {
-                    showErrorToast("User session expired!")
-                    navigation.navigate(Routes.LOGIN_STACK);
+                    response.json().then((body) => {
+                        errorMessage = body.error.message;
+                        showErrorToast(errorMessage);
+                    });
+
+
+
                 }
-                response.json().then((body) => {
-                    errorMessage = body.error.message;
-                    showErrorToast(errorMessage);
-                });
+            })
+        } else {
+            fetch(BASE_URL + OPPORTUNITY_ENDPOINT, {
+                method: 'POST',
+                headers: {
+                    'Authorization': 'Bearer ' + token,
+                    'Content-Type': 'application/json'
+                },
+                body: requestBody
+            }).then((response) => {
+                if (response.ok) {
+                    fetch("https://syakarhonda.api.crm5.dynamics.com/api/data/v9.1/opportunities(" + opportunityId + ")", {
+                        method: 'PATCH',
+                        headers: {
+                            'Authorization': 'Bearer ' + token,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            'pricelevelid@odata.bind': "/pricelevels(" + value + ")"
+                        })
+                    }).then((response) => {
+                        if (response.ok) {
+                            console.log("price level successfully added");
+                            setVisible(true);
+                        } else {
+                            if (response.status == 401) {
+                                showErrorToast("User session expired!")
+                                navigation.navigate(Routes.LOGIN_STACK);
+                            }
+                            response.json().then((body) => {
+                                errorMessage = body.error.message;
+                                showErrorToast(errorMessage);
+                            });
 
 
 
-            }
-        })
+                        }
+                    })
+                } else {
+                    if (response.status == 401) {
+                        showErrorToast("User session expired!")
+                        navigation.navigate(Routes.LOGIN_STACK);
+                    }
+                    response.json().then((body) => {
+                        errorMessage = body.error.message;
+                        showErrorToast(errorMessage);
+                    });
+
+
+
+                }
+            })
+        }
     }
 
     const submitOpportunityProduct = (props) => {
         let requestBody;
         let errorMessage = '';
-        console.log("passed props in product form is",props);
+        console.log("passed props in product form is", props);
         if (productsListData == undefined) {
             requestBody = JSON.stringify({
                 'opportunityid@odata.bind': "/opportunities(" + opportunityId + ")",
@@ -641,7 +767,7 @@ const BookingForm = (props) => {
                 baseamount: parseInt(props.values.amount)
             })
         }
-        console.log("final request body is",requestBody);
+        console.log("final request body is", requestBody);
 
         fetch(BASE_URL + OPPORTUNITYPRODUCT_ENDPOINT, {
             method: 'POST',
@@ -654,7 +780,7 @@ const BookingForm = (props) => {
             if (response.ok) {
                 unitListData.length = 0;
                 productList.length = 0;
-                fetch("https://syakarhonda.api.crm5.dynamics.com/api/data/v9.1/opportunities("+opportunityId+")", {
+                fetch("https://syakarhonda.api.crm5.dynamics.com/api/data/v9.1/opportunities(" + opportunityId + ")", {
                     headers: {
                         'Authorization': 'Bearer ' + token,
                         'Content-Type': 'application/json'
@@ -662,8 +788,8 @@ const BookingForm = (props) => {
                 }).then((response) => {
                     if (response.ok) {
                         response.json().then((responseJson) => {
-                            console.log("total amount is",responseJson.totalamount);
-                            setPriceAmountValue(responseJson.totalamount+'');
+                            console.log("total amount is", responseJson.totalamount);
+                            setPriceAmountValue(responseJson.totalamount + '');
                         })
                     } else {
                         showErrorToast("Total amount fetching unsuccessful");
@@ -687,6 +813,55 @@ const BookingForm = (props) => {
         })
     }
 
+    const component1 = () =>
+        <View style={{ flexDirection: 'row' }}>
+            <IconX
+                style={{ marginRight: 8 }}
+                origin={ICON_TYPE.MATERIAL_ICONS}
+                name={'assignment'}
+                color="black"
+            />
+            <Text style={{ fontFamily: Fonts.type.semiBold, fontSize: 16 }}>Lead
+    </Text>
+        </View>
+    const component2 = () =>
+        <View style={{ flexDirection: 'row' }}>
+            <IconX
+                style={{ marginRight: 8 }}
+                origin={ICON_TYPE.ICONICONS}
+                name={'bicycle-outline'}
+                color="black"
+            />
+            <Text style={{ fontFamily: Fonts.type.semiBold, fontSize: 16 }}>Test Ride
+    </Text>
+        </View>
+    const component3 = () =>
+        <View style={{ flexDirection: 'row' }}>
+            <IconX
+                style={{ marginRight: 8 }}
+                origin={ICON_TYPE.ICONICONS}
+                name={'call-outline'}
+                color="black"
+            />
+            <Text style={{ fontFamily: Fonts.type.semiBold, fontSize: 16 }}>
+                Follow Up
+        </Text>
+        </View>
+    const [index, setIndex] = React.useState(1);
+    const buttons = [{ element: component1 }, { element: component2 }, { element: component3 }]
+
+    const updateIndex = (selectedIndex) => {
+        console.log("selected index is", selectedIndex);
+        setIndex(selectedIndex);
+        if (selectedIndex == 0) {
+            navigation.navigate(Routes.LEAD_SCREEN)
+        }
+        if (selectedIndex == 1) {
+            navigation.navigate(Routes.TEST_RIDE_FORM_SCREEN)
+        }
+    }
+    const { selectedIndex } = index;
+
     return (
         <SafeAreaView style={{ width: '100%', flex: 1, backgroundColor: '#ffffff' }}>
             <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
@@ -705,26 +880,25 @@ const BookingForm = (props) => {
 
                     <View style={styles.body}>
                         <HeaderText>Booking</HeaderText>
+                        {editMode ?
+                            <TouchableOpacity onPress={() => {
+                                setEditMode(false);
+                                setReload(true);
+                                setPatchMode(true);
+                                setPostUrl(BASE_URL + OPPORTUNITY_ENDPOINT + '(' + bookingId + ')');
+                            }}>
+                                <Text style={{ alignSelf: "flex-end", fontSize: 20, fontFamily: Fonts.type.primary, paddingEnd: 16 }}>Edit</Text>
+                            </TouchableOpacity>
+                            : null}
                     </View>
 
-                    <View style={{ marginBottom: 82, paddingBottom: 16 }}>
-                        <ProgressSteps
-                            style={{ flex: 1 }}
-                            topOffset={10}
-                            activeStepIconBorderColor="red"
-                            completedProgressBarColor="red"
-                            activeLabelColor="red"
-                            activeStep={2}>
-                            <ProgressStep label="Lead Info" nextBtnText="" previousBtnText="" removeBtnRow={true}>
+                    <View style={{ marginBottom: 42, paddingBottom: 16, flex: 1 }}>
+                        <ButtonGroup
+                            onPress={updateIndex}
+                            selectedIndex={selectedIndex}
+                            buttons={buttons}
+                            containerStyle={{ height: 32 }} />
 
-                            </ProgressStep>
-                            <ProgressStep label="Opportunity" nextBtnText="" previousBtnText="" removeBtnRow={true}>
-
-                            </ProgressStep>
-                            <ProgressStep label="Confirm" nextBtnText="" previousBtnText="" finishBtnText="" removeBtnRow={true}>
-
-                            </ProgressStep>
-                        </ProgressSteps>
                     </View>
 
 
@@ -745,10 +919,11 @@ const BookingForm = (props) => {
                                 <SafeAreaView style={{ marginLeft: 16, marginTop: 13, flex: 1 }}>
 
                                     <View style={{ flexDirection: 'column', marginTop: 8, marginBottom: 16 }}>
-                                        <Text style={{ marginBottom: -16 }}>Purchase Time Frame</Text>
+                                        <Text style={{ marginBottom: -16, fontFamily: Fonts.type.primary, fontSize: 14, lineHeight: 16 }}>Purchase Time Frame</Text>
                                         <View style={dropDownStyleFull}>
 
                                             <RNPickerSelect
+                                                disabled={editMode ? true : false}
                                                 items={PurchaseTimeConstants}
                                                 onValueChange={value => {
                                                     setDataOptionSet({
@@ -764,15 +939,19 @@ const BookingForm = (props) => {
                                     </View>
 
                                     <StyledInput
+                                        uneditable={editMode ? true : false}
                                         label="Advance Amount"
                                         formikProps={formikProps}
-                                        formikKey="advanceAmount" />
+                                        formikKey="advanceAmount"
+                                        passedValue={dataOptionSet.advanceAmount}
+                                    />
 
                                     <View style={{ flexDirection: 'column', marginTop: 4 }}>
-                                        <Text style={{ marginBottom: -16 }}>Mode Of Payment</Text>
+                                        <Text style={{ marginBottom: -16, fontFamily: Fonts.type.primary, fontSize: 14, lineHeight: 16 }}>Mode Of Payment</Text>
                                         <View style={dropDownStyleFull}>
 
                                             <RNPickerSelect
+                                                disabled={editMode ? true : false}
                                                 items={PaymentModeConstants}
                                                 onValueChange={value => {
                                                     setDataOptionSet({
@@ -788,10 +967,11 @@ const BookingForm = (props) => {
                                     </View>
 
                                     <View style={{ flexDirection: 'column', marginTop: 16 }}>
-                                        <Text style={{ marginBottom: -16 }}>Finance Choices</Text>
+                                        <Text style={{ marginBottom: -16, fontFamily: Fonts.type.primary, fontSize: 14, lineHeight: 16 }}>Finance Choices</Text>
                                         <View style={dropDownStyleFull}>
 
                                             <RNPickerSelect
+                                                disabled={editMode ? true : false}
                                                 items={FinanceChoiceConstants}
                                                 onValueChange={value => {
                                                     setDataOptionSet({
@@ -811,9 +991,10 @@ const BookingForm = (props) => {
                                     </View>
 
                                     <View style={{ flexDirection: 'column' }}>
-                                        <Text style={{ marginBottom: -16, marginTop: 12 }}>Currency</Text>
+                                        <Text style={{ marginBottom: -16, marginTop: 12, fontFamily: Fonts.type.primary, fontSize: 14, lineHeight: 16 }}>Currency</Text>
                                         <View style={dropDownStyle}>
                                             <RNPickerSelect
+                                                disabled={editMode ? true : false}
                                                 items={currencyDataItems}
                                                 onValueChange={(value) =>
                                                     setCurrencyListData(value)
@@ -827,10 +1008,11 @@ const BookingForm = (props) => {
                                     </View>
 
                                     <View style={{ flexDirection: 'column', marginTop: 16, marginBottom: 16 }}>
-                                        <Text style={{ marginBottom: -16 }}>Revenue</Text>
+                                        <Text style={{ marginBottom: -16, fontFamily: Fonts.type.primary, fontSize: 14, lineHeight: 16 }}>Revenue</Text>
                                         <View style={dropDownStyleFull}>
 
                                             <RNPickerSelect
+                                                disabled={editMode ? true : false}
                                                 items={RevenueConstants}
                                                 onValueChange={value => {
                                                     setDataOptionSet({
@@ -846,13 +1028,14 @@ const BookingForm = (props) => {
                                     </View>
 
                                     <View style={{ flexDirection: 'column', marginBottom: 48, paddingBottom: 48 }}>
-                                        <Text style={{ marginBottom: -16 }}>Price</Text>
+                                        <Text style={{ marginBottom: -16, fontFamily: Fonts.type.primary, fontSize: 14, lineHeight: 16 }}>Price</Text>
                                         <View style={dropDownStyleFull}>
                                             <RNPickerSelect
+                                                disabled={editMode ? true : false}
                                                 items={priceListDataItems}
                                                 onValueChange={(value) => {
                                                     setPriceListData(value)
-                                                    preBookingPost(value,formikProps)
+                                                    preBookingPost(value, formikProps)
                                                 }
                                                 }
                                                 style={pickerSelectStyles}
@@ -863,8 +1046,8 @@ const BookingForm = (props) => {
                                         </View>
                                     </View>
 
-                                    <View style={{marginTop:-96,marginBottom:84}}>
-                                  
+                                    <View style={{ marginTop: -82, marginBottom: 84 }}>
+
                                         <StyledInput
                                             label="Total Amount"
                                             passedValue={priceAmountValue}
@@ -884,7 +1067,7 @@ const BookingForm = (props) => {
                                         <Text style={{ alignSelf: 'center', fontSize: 16, fontFamily: Fonts.type.bold }}>Product Details</Text>
                                         <ScrollView>
                                             <View style={{ flexDirection: 'column', marginTop: 16 }}>
-                                                <Text style={{ marginBottom: -16 }}>Select Product</Text>
+                                                <Text style={{ marginBottom: -16, fontFamily: Fonts.type.primary, fontSize: 14, lineHeight: 16 }}>Select Product</Text>
                                                 <View style={dropDownStyleFullModal}>
 
                                                     <RNPickerSelect
@@ -908,7 +1091,7 @@ const BookingForm = (props) => {
                                             </View>
 
                                             <View style={{ flexDirection: 'column' }}>
-                                                <Text style={{ marginBottom: -16 }}>Unit</Text>
+                                                <Text style={{ marginBottom: -16, fontFamily: Fonts.type.primary, fontSize: 14, lineHeight: 16 }}>Unit</Text>
                                                 <View style={dropDownStyleFullModal}>
 
                                                     <RNPickerSelect
@@ -926,7 +1109,7 @@ const BookingForm = (props) => {
                                             </View>
 
                                             <View style={{ flexDirection: 'column', marginTop: 16 }}>
-                                                <Text style={{ marginBottom: -16 }}>Price Overridden</Text>
+                                                <Text style={{ marginBottom: -16, fontFamily: Fonts.type.primary, fontSize: 14, lineHeight: 16 }}>Price Overridden</Text>
                                                 <View style={dropDownStyleFullModal}>
 
                                                     <RNPickerSelect
@@ -1053,6 +1236,7 @@ const styles = StyleSheet.create({
         marginTop: 2,
         marginBottom: 4,
         marginLeft: 4,
+        fontFamily: Fonts.type.primary,
         color: '#333333',
     },
     ovalButton: {
@@ -1181,7 +1365,7 @@ const pickerSelectStyles = StyleSheet.create({
         fontSize: 16,
         paddingVertical: 8,
 
-
+        fontFamily: Fonts.type.primary,
         borderRadius: 8,
         color: 'black',
         // to ensure the text is never behind the icon
