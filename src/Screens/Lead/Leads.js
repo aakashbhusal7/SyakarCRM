@@ -108,7 +108,7 @@ const Leads = ({ routes, navigation }) => {
             if (result.ok) {
                 const data = await result.json();
                 let tempList = [];
-                data.value.map((object, key) =>
+                data.value.filter(value=>value.yomifullname!==null).map((object, key) =>
                     tempList.push({
                         "fullname": object.yomifullname,
                         "phone": object.mobilephone,

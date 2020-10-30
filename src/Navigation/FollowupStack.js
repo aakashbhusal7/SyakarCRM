@@ -1,5 +1,6 @@
 import { createStackNavigator } from '@react-navigation/stack';
 import React from 'react';
+import FollowUpForm from '../Screens/FollowUp/FollowUpForm';
 import FollowUpList from '../Screens/FollowUp/FollowUpList';
 import Routes from './Routes';
 
@@ -25,6 +26,21 @@ export default props => {
                 }}
 
             />
+
+            <Stack.Screen name={Routes.FOLLOW_UP_FORM_SCREEN} component={FollowUpForm}
+                options={{
+                    title: 'Menu',
+                    headerStyle: {
+                        backgroundColor: '#f4511e',
+                    },
+                    headerTintColor: '#fff',
+                    headerTitleStyle: {
+                        fontWeight: 'bold',
+                    },
+                }}
+
+            />
+
 
 
 

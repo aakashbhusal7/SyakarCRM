@@ -5,7 +5,6 @@ export default ({label, color, style, mode,  zeroMargin, onPress, loading ,conte
     return(
         <Button
             style={[{ marginTop: zeroMargin ? 0 : 20 } , style]}
-            loading={loading}
             mode ={mode || 'contained'}
             contentStyle={{ padding:8, ...contentStyle }}
             color={color}

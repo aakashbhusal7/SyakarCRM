@@ -46,7 +46,7 @@ const FollowUpList = (props) => {
     }, [navigation, theme.colors.headerTitle]);
     const { signOut } = React.useContext(AuthContext);
     const [leadData, setLeadData] = React.useState([]);
-    const [token, setToken] = React.useState(undefined);
+    const [token, setToken] = React.useState();
     const [contactKey, setContactKey] = React.useState();
     const [loading, setLoadindg] = React.useState(true);
     const [search, setSearch] = React.useState({
@@ -62,16 +62,16 @@ const FollowUpList = (props) => {
     // React.useEffect(() => {
     //     _apiCall();
     // }, [])
-    React.useEffect(() => {
-        retrieveContactId();
-    }, [contactKey])
+    // React.useEffect(() => {
+    //     retrieveContactId();
+    // }, [contactKey])
 
     async function retrieveToken() {
         try {
             const value = await AsyncStorage.getItem('@token_key');
             if (value !== null) {
                 setToken(value);
-                //_apiCall(value);
+                _apiCall(value);
                 console.log("token is= " + value);
             }
         } catch (error) {
@@ -79,20 +79,9 @@ const FollowUpList = (props) => {
         }
     }
 
-    async function retrieveContactId() {
-        try {
-            const contactId = await AsyncStorage.getItem('@contactId');
-            if (contactId !== null) {
-                setContactKey(contactId);
-                _apiCall();
-            }
-        } catch (error) {
-            console.log("error is", error);
-        }
-    }
 
 
-    async function _apiCall() {
+    async function _apiCall(token) {
         const result = await fetch("https://syakarhonda.api.crm5.dynamics.com/api/data/v9.1/opportunities", {
             method: 'GET',
             headers: {
@@ -106,11 +95,12 @@ const FollowUpList = (props) => {
         if (result.ok) {
             const data = await result.json();
             let tempList = [];
-            data.value.filter(value=>value.name!==null).map((object, key) =>
+            data.value.filter(value => value.name !== null).map((object, key) =>
                 tempList.push({
                     "name": object.name,
                     "email": object.emailaddress,
-                    "followup": object.agile_followuprequired
+                    "followup": object.agile_followuprequired,
+                    "bookingId": object.opportunityid,
 
                 })
             );
@@ -124,7 +114,7 @@ const FollowUpList = (props) => {
             setLeadData(undefined);
             if (result.status == 401) {
                 showErrorToast("User session expired!")
-                //signOut();
+                signOut();
             } else {
                 const errorData = result.json();
                 const errorJson = errorData.error.message;
@@ -145,7 +135,7 @@ const FollowUpList = (props) => {
     }
 
     return (
-        <View style={{ flex: 1, marginTop: 36 }}>
+        <View style={{ flex: 1, marginTop: 36, marginBottom: 24, paddingBottom: 24 }}>
             {loading &&
                 <AnimatedLoader
                     visible={true}
@@ -156,7 +146,7 @@ const FollowUpList = (props) => {
                 />
             }
             {!loading &&
-                <View>
+                <View style={{ flex: 1 }}>
                     <HeaderText>Follow Ups</HeaderText>
                     <SearchBar
                         underlineColorAndroid="white"
@@ -176,7 +166,7 @@ const FollowUpList = (props) => {
                                 if (u.followup == 1) {
                                     return (
 
-                                        <CardListComponent flag="followUp" data={u} key={i} />
+                                        <CardListComponent flag="followUp" token={token} data={u} key={i} />
 
 
 

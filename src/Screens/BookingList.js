@@ -128,7 +128,7 @@ const BookingList = (props) => {
     }
 
     return (
-        <View style={{ flex: 1, marginTop: 36 }}>
+        <View style={{ flex: 1, marginTop: 36, marginBottom: 24, paddingBottom: 24 }}>
             {loading &&
                 <AnimatedLoader
                     visible={true}
@@ -139,7 +139,7 @@ const BookingList = (props) => {
                 />
             }
             {!loading &&
-                <View>
+                <View style={{ flex: 1 }}>
                     <HeaderText>Bookings</HeaderText>
                     <SearchBar
                         underlineColorAndroid="white"

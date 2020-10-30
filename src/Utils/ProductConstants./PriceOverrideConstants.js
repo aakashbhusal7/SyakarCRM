@@ -1,11 +1,11 @@
 export const PriceOverrideConstants = [{
     id: 1,
-    value: "false",
+    value: 'true',
     label: 'Use Default',
 },
 {
     id: 2,
-    value: "true",
+    value: 'false',
     label: 'Override Price',
 },
 ]

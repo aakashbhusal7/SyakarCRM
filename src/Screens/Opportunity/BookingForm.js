@@ -30,14 +30,8 @@ import { TouchableOpacity } from 'react-native-gesture-handler';
 import { AuthContext } from '../../Components/context';
 
 var width = Dimensions.get('window').width;
-var currencyList = [];
-var currencyDataItems = [];
-var priceList = [];
-var priceListDataItems = [];
-var unitList = [];
-var unitDataItems = [];
-var productList = [];
-var productDataItems = [];
+
+
 const dropDownStyle = {
     height: 45,
     width: width / 2.25,
@@ -188,7 +182,7 @@ const StyledInput = ({ label, formikProps, uneditable, passedValue, formikKey, t
                 <View >
                     <TextInput
                         style={inputStyles}
-                        defaultValue={passedValue}
+                        defaultValue={passedValue != "null" ? passedValue : ''}
                         editable={uneditable ? false : true}
                         underlineColorAndroid="transparent"
                         onChangeText={
@@ -233,11 +227,10 @@ const BookingForm = (props) => {
     const { signOut } = React.useContext(AuthContext);
     const navigation = useNavigation();
     const [token, setToken] = useState();
-    const [checked, setChecked] = useState(FollowUpConstants[0].value);
-    const [interest, setInterest] = useState(InterestConstants[0].value);
     const { t } = useTranslation();
     const [editMode, setEditMode] = React.useState(false);
     const [postUrl, setPostUrl] = React.useState(BASE_URL + OPPORTUNITY_ENDPOINT);
+    const [uomName, setUomName] = React.useState("");
     const [dataOptionSet, setDataOptionSet] = React.useState({
         timeFrame: undefined,
         paymentMode: undefined,
@@ -245,17 +238,42 @@ const BookingForm = (props) => {
         revenue: undefined,
         productOverride: undefined,
         priceOverride: undefined,
+        pricePerUnit: undefined,
+        productName: undefined,
+        unitId: undefined,
+        volumeDiscountAmount: undefined,
+        quantity: undefined,
+        amount: undefined,
         advanceAmount: undefined,
         currency: undefined,
         priceList: undefined,
+        unit: undefined,
+        model: undefined,
         otherFinance: undefined,
         opportunityId: undefined,
     });
+    const [opportunityProductValue, setOpportunityProductValue] = React.useState({
+        isProductOverride: undefined,
+        productName: undefined,
+        productId: undefined,
+        newProductName: undefined,
+        unitid: undefined,
+        isPriceOverride: undefined,
+        pricePerUnit: undefined,
+        volumeDiscountAmount: undefined,
+        quantity: undefined,
+        amount: undefined,
+        uomName: undefined,
+
+    });
+    const [currencyData, setCurrencyData] = React.useState([]);
+    const [priceData, setPriceData] = React.useState([]);
+    const [unitData, setUnitData] = React.useState([]);
+    const [modelData, setModelData] = React.useState([]);
     const [reload, setReload] = React.useState(false);
     const [patchMode, setPatchMode] = React.useState(false);
-
-    const [currencyListData, setCurrencyListData] = useState([]);
-    const [priceListData, setPriceListData] = useState([]);
+    const [modelName, setModelName] = React.useState();
+    const [opportunityStatus, setOpportunityStatus] = React.useState();
     const [unitListData, setUnitListData] = useState([]);
     const [uomId, setUomId] = useState();
     const route = useRoute();
@@ -268,13 +286,11 @@ const BookingForm = (props) => {
     };
     let productId = '';
     let opportunityId = '';
-    let modelName = '';
     if (route.params !== undefined) {
         console.log("passed params are", route.params.passingProp);
         if (route.params.passingProp !== undefined) {
             productId = route.params.passingProp.modelId;
             opportunityId = route.params.passingProp.opportunityId;
-            modelName = route.params.passingProp.modelName;
         } else {
             opportunityId = route.params.bookingId;
         }
@@ -282,6 +298,7 @@ const BookingForm = (props) => {
     } else {
         console.log("here");
     }
+
 
     React.useEffect(() => {
         const _toggleDrawer = () => {
@@ -318,31 +335,76 @@ const BookingForm = (props) => {
         retrieveToken();
 
     }, [])
-    React.useEffect((async) => {
-        fetchUnit();
+    // React.useEffect((async) => {
+    //     fetchUnit();
 
-    }, [uomId])
+    // }, [uomId])
 
     async function retrieveToken() {
         try {
             const value = await AsyncStorage.getItem('@token_key');
             if (value !== null) {
                 setToken(value);
-                if (reload == false) {
-                    fetchExistingBooking(value)
-                }
+                fetchOpportunityStataus(value)
+                // if (reload == false) {
+                //     console.log("here");
+                //     console.log('opportunity status is', opportunityStatus);
+
+                //     if (opportunityStatus == 1) {
+                //         console.log("here inside");
+                //         setLoading(true);
+                //         fetchExistingBooking(value)
+                //     }
+
+                // }
                 fetchCurrencies(value);
                 fetchPriceList(value);
                 fetchProducts(value);
+                fetchProductName(value, productId)
                 if (productId !== '') {
                     fetchUomId(value, productId);
                     fetchUnit(value, productId);
                 }
-                console.log("token is= " + value);
+                console.log("tokenn is= " + value);
             }
         } catch (error) {
             console.log("error is", error);
         }
+    }
+
+
+    async function fetchOpportunityStataus(token) {
+        setLoading(true);
+        const res = await fetch(BASE_URL + OPPORTUNITY_ENDPOINT + '(' + opportunityId + ')', {
+            method: 'GET',
+            headers: {
+                'Authorization': 'Bearer ' + token,
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+            }
+        })
+        if (res.ok) {
+            const data = await res.json();
+            setOpportunityStatus(data.agile_interested);
+            if (reload == false) {
+
+                console.log('opportunity status is', opportunityStatus);
+
+                if (data.agile_interested == 1) {
+                    console.log("here inside");
+                    //setLoading(true);
+                    fetchExistingBooking(token)
+                } else {
+                    setLoading(false);
+                    console.log("entered here");
+
+                }
+
+            }
+        } else {
+            showErrorToast("Error loading the data")
+        }
+        return opportunityStatus;
     }
 
     async function fetchProducts(token) {
@@ -356,15 +418,27 @@ const BookingForm = (props) => {
             }
 
         })
-        const data = await res.json();
-        data.value.map((object, key) => productList.push(object));
-        productDataItems = productList.map(object => ({
-            label: object.name,
-            value: object.productid
-        }));
+        if (res.ok) {
+            const data = await res.json();
+            data.value.map((object, key) => setModelData(modelData => [
+                ...modelData,
+                {
+                    label: object.name,
+                    value: object.productid
+                },
+            ]));
+        } else {
+            if (res.status == 401) {
+                signOut();
+            }
+            else {
+                let resJson = res.json()
+                let errorMessage = resJson.body.error.message
+                showErrorToast(errorMessage);
+            }
+        }
 
-
-        console.log("product list is", productDataItems);
+        console.log("product list is", modelData);
     }
     async function fetchCurrencies(token) {
         console.log("token is", token);
@@ -378,58 +452,25 @@ const BookingForm = (props) => {
 
         })
         const data = await res.json();
-        data.value.map((object, key) => currencyList.push(object));
-        currencyDataItems = currencyList.map(object => ({
-            label: object.isocurrencycode,
-            value: object.transactioncurrencyid,
-        }));
-        currencyList.length = 0;
-
-        console.log("currency list is", currencyDataItems);
-    }
-
-    function fetchExistingBooking(token) {
-        let errorMessage = '';
-        if (bookingId !== '') {
-            fetch("https://syakarhonda.api.crm5.dynamics.com/api/data/v9.1/opportunities(" + bookingId + ")", {
-                headers: {
-                    'Authorization': 'Bearer ' + token,
-                    'Accept': 'application/json',
-                    'Content-Type': 'application/json',
-                }
-            }).then((res) => {
-                if (res.ok) {
-                    res.json().then(
-                        (resJson) => {
-                            setDataOptionSet({
-                                purchasetimeframe: "" + resJson.purchasetimeframe,
-                                advanceAmount: resJson.new_advanceamt,
-                                paymentMode: "" + resJson.new_modeofpayment,
-                                financeChoice: "" + resJson.agile_financechoices,
-                                currency: "" + resJson._transactioncurrencyid_value,
-                                revenue: "" + resJson.isrevenuesystemcalculated,
-                                otherFinance: resJson.agile_financeothers,
-                                priceList: "" + resJson._pricelevelid_value,
-
-
-                            })
-                            setEditMode(true);
-                            setLoading(false);
-
-                        })
-                } else {
-                    if (res.status == 401) {
-                        signOut();
-                    }
-                    res.json().then((body) => {
-                        errorMessage = body.error.message;
-                        showErrorToast(errorMessage)
-                        console.log("error message is", errorMessage);
-                    });
-                    console.log("error in edit lead form");
-                }
-            })
+        if (res.ok) {
+            data.value.map((object, key) => setCurrencyData(currencyData => [
+                ...currencyData,
+                {
+                    label: object.isocurrencycode,
+                    value: object.transactioncurrencyid
+                },
+            ]));
+        } else {
+            if (res.status == 401) {
+                signOut();
+            }
+            else {
+                let resJson = res.json()
+                let errorMessage = resJson.body.error.message
+                showErrorToast(errorMessage);
+            }
         }
+
     }
 
     async function fetchPriceList(token) {
@@ -443,16 +484,105 @@ const BookingForm = (props) => {
             }
 
         })
-        const data = await res.json();
-        data.value.map((object, key) => priceList.push(object));
-        priceListDataItems = priceList.map(object => ({
-            label: object.name,
-            value: object.pricelevelid,
-        }));
+        if (res.ok) {
+            const data = await res.json();
+            data.value.map((object, key) => setPriceData(priceData => [
+                ...priceData,
+                {
+                    label: object.name,
+                    value: object.pricelevelid
+                },
+            ]));
+        } else {
+            if (res.status == 401) {
+                signOut();
+            }
+            else {
+                let resJson = res.json()
+                let errorMessage = resJson.body.error.message
+                showErrorToast(errorMessage);
+            }
+        }
 
-        priceList.length = 0;
-        console.log("price list is", priceListDataItems);
+        console.log("price list is", priceData);
     }
+
+    async function fetchProductName(token, value) {
+        const res = await fetch(BASE_URL + PRODUCTS_ENDPOINT + "(" + value + ")", {
+            headers: {
+                'Authorization': 'Bearer ' + token,
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+            }
+
+        })
+        if (res.ok) {
+            const data = await res.json()
+            setModelName(data.name);
+        } else {
+            setModelName("");
+            if (res.status == 401) {
+                signOut();
+            }
+            else {
+                let resJson = res.json()
+                let errorMessage = resJson.body.error.message
+                showErrorToast(errorMessage);
+            }
+        }
+        console.log("passed model name is", modelName);
+    }
+
+    function fetchExistingBooking(token) {
+        let errorMessage = '';
+        if (bookingId !== '' || opportunityId !== '') {
+            fetch("https://syakarhonda.api.crm5.dynamics.com/api/data/v9.1/opportunities(" + opportunityId + ")", {
+                headers: {
+                    'Authorization': 'Bearer ' + token,
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json',
+                }
+            }).then((res) => {
+                if (res.ok) {
+                    res.json().then(
+                        (resJson) => {
+                            setDataOptionSet({
+                                timeFrame: "" + resJson.purchasetimeframe,
+                                advanceAmount: resJson.new_advanceamt,
+                                paymentMode: "" + resJson.new_modeofpayment,
+                                financeChoice: "" + resJson.agile_financechoices,
+                                currency: "" + resJson._transactioncurrencyid_value,
+                                revenue: "" + resJson.isrevenuesystemcalculated,
+                                otherFinance: resJson.agile_financeothers,
+                                priceList: "" + resJson._pricelevelid_value,
+                                amount:  ""+resJson.totalamount,
+
+
+                            })
+                            console.log("total amount is",resJson.totalamount);
+                            setEditMode(true);
+                            setLoading(false);
+
+                        })
+                } else {
+                    setLoading(false);
+                    if (res.status == 401) {
+                        signOut();
+                    }
+                    res.json().then((body) => {
+                        errorMessage = body.error.message;
+                        showErrorToast(errorMessage)
+                        console.log("error message is", errorMessage);
+                    });
+                    console.log("error in edit lead form");
+                }
+            })
+        } else {
+            setLoading(false);
+        }
+    }
+
+
 
     async function fetchUomId(token, productId) {
         console.log("token is", token);
@@ -466,14 +596,25 @@ const BookingForm = (props) => {
             }
 
         })
-        const data = await res.json();
-        console.log("result is", res.status);
-        setUomId(data._defaultuomscheduleid_value);
+        if (res.ok) {
+            const data = await res.json();
+            console.log("result is", res.status);
+            setUomId(data._defaultuomscheduleid_value);
+        } else {
+            if (res.status == 401) {
+                signOut();
+            }
+            else {
+                let resJson = res.json()
+                let errorMessage = resJson.body.error.message
+                showErrorToast(errorMessage);
+            }
+        }
 
     }
 
 
-    async function fetchUnit() {
+    async function fetchUnit(token) {
         console.log("token is", token);
         console.log("prodcut id value in the functions is", productId);
         const res = await fetch("https://syakarhonda.api.crm5.dynamics.com/api/data/v9.1/uoms?$filter=_uomscheduleid_value eq " + uomId, {
@@ -485,16 +626,29 @@ const BookingForm = (props) => {
             }
 
         })
-        const data = await res.json();
-        console.log("result is", res.status);
-        data.value.map((object, key) => unitList.push(object));
-        unitDataItems = unitList.map(object => ({
-            label: object.name,
-            value: object.uomid,
-        }));
+        if (res.ok) {
+            const data = await res.json();
+            console.log("result is", res.status);
+            data.value.map((object, key) => setUnitData(unitData => [
+                ...unitData,
+                {
+                    label: object.name,
+                    value: object.uomid
+                },
+            ]));
+        } else {
+            if (res.status == 401) {
+                signOut();
+            }
+            else {
+                // let resJson = res.json()
+                // let errorMessage = resJson.body.error.message
+                //showErrorToast("error");
+            }
+        }
 
 
-        console.log("unit list is", unitDataItems);
+        console.log("unit list is", unitData);
     }
 
 
@@ -504,8 +658,8 @@ const BookingForm = (props) => {
         let requestBody;
         let errorMessage = '';
         requestBody = JSON.stringify({
-            'transactioncurrencyid@odata.bind': "/transactioncurrencies(" + currencyListData + ")",
-            'pricelevelid@odata.bind': "/pricelevels(" + priceListData + ")",
+            'transactioncurrencyid@odata.bind': "/transactioncurrencies(" + dataOptionSet.currency + ")",
+            'pricelevelid@odata.bind': "/pricelevels(" + dataOptionSet.priceList + ")",
             purchasetimeframe: dataOptionSet.timeFrame,
             new_advanceamt: values.advanceAmount,
             new_modeofpayment: dataOptionSet.paymentMode,
@@ -513,11 +667,13 @@ const BookingForm = (props) => {
             agile_financeothers: values.otherFinance,
             isrevenuesystemcalculated: dataOptionSet.revenue,
             quantity: props.quantity,
+            agile_interested: "1",
             totalamount: parseInt(priceAmountValue),
 
         })
-        fetch(BASE_URL + OPPORTUNITY_ENDPOINT, {
-            method: 'POST',
+        console.log("final request body is", requestBody);
+        fetch(BASE_URL + OPPORTUNITY_ENDPOINT + '(' + opportunityId + ')', {
+            method: 'PATCH',
             headers: {
                 'Authorization': 'Bearer ' + token,
                 'Content-Type': 'application/json'
@@ -525,12 +681,10 @@ const BookingForm = (props) => {
             body: requestBody
         }).then((response) => {
             if (response.ok) {
-                currencyListData.length = 0
-                priceListData.length = 0
                 setLoading(false);
                 !patchMode ? showSuccessToast("Successfully setup booking form") : showSuccessToast("Successfully updated booking form");
 
-                navigation.navigate(Routes.BOOKING_LIST_SCREEN)
+                // navigation.navigate(Routes.BOOKING_LIST_SCREEN)
                 navigation.reset({
                     index: 0,
                     routes: [{ name: 'BOOKING_LIST' }]
@@ -575,16 +729,20 @@ const BookingForm = (props) => {
 
     const showOptionalFields = (props) => {
         let element;
-        if (dataOptionSet.productOverride == 1) {
+        if (opportunityProductValue.isProductOverride == "true") {
+            console.log("here");
             element = (
                 <View>
                     <StyledInput
+                        uneditable={editMode ? true : false}
                         type="modal"
                         label="Existing Product"
-                        passedValue={modelName}
+                        //passedValue={modelName}
                         uneditable
                         formikProps={props}
-                        formikKey="exisitingProduct" />
+                        formikKey="exisitingProduct"
+                        passedValue={opportunityProductValue.productName !== undefined ? opportunityProductValue.productName : modelName}
+                    />
 
 
                 </View>
@@ -598,14 +756,16 @@ const BookingForm = (props) => {
                         <Text style={{ marginBottom: -16, fontSize: 14, lineHeight: 16, color: '#333333', fontFamily: Fonts.type.primary }}>Model</Text>
                         <View style={dropDownStyleFullModal}>
                             <RNPickerSelect
-
-                                items={productDataItems}
+                                disabled={editMode ? true : false}
+                                items={modelData}
                                 onValueChange={(value, key) => {
-                                    setProductsListData(value);
+                                    setOpportunityProductValue({
+                                        ...opportunityProductValue, newProductName: value
+                                    })
                                 }
                                 }
                                 style={pickerSelectStyles}
-                                value={productsListData}
+                                value={opportunityProductValue.newProductName}
                                 useNativeAndroidPickerStyle={false}
 
                             />
@@ -621,7 +781,7 @@ const BookingForm = (props) => {
         console.log("other props are", props);
         let errorMessage = '';
         let requestBody = JSON.stringify({
-            'transactioncurrencyid@odata.bind': "/transactioncurrencies(" + currencyListData + ")",
+            'transactioncurrencyid@odata.bind': "/transactioncurrencies(" + dataOptionSet.currency + ")",
             'pricelevelid@odata.bind': "/pricelevels(" + value + ")",
             purchasetimeframe: dataOptionSet.timeFrame,
             new_advanceamt: props.advanceAmount,
@@ -629,9 +789,11 @@ const BookingForm = (props) => {
             agile_financechoices: dataOptionSet.financeChoice,
             agile_financeothers: props.otherFinance,
             isrevenuesystemcalculated: dataOptionSet.revenue,
+            agile_interested: "1",
             quantity: props.quantity,
 
         })
+        console.log("request body is", requestBody);
         if (patchMode) {
             fetch(BASE_URL + OPPORTUNITY_ENDPOINT + "(" + bookingId + ")", {
                 method: 'PATCH',
@@ -684,6 +846,7 @@ const BookingForm = (props) => {
                 }
             })
         } else {
+            console.log("here i ammmmmmmmmmmmmmmm");
             fetch(BASE_URL + OPPORTUNITY_ENDPOINT, {
                 method: 'POST',
                 headers: {
@@ -741,13 +904,12 @@ const BookingForm = (props) => {
         let requestBody;
         let errorMessage = '';
         console.log("passed props in product form is", props);
-        if (productsListData == undefined) {
+        if (opportunityProductValue.productId == undefined) {
             requestBody = JSON.stringify({
                 'opportunityid@odata.bind': "/opportunities(" + opportunityId + ")",
                 'productid@odata.bind': "/products(" + productId + ")",
-                'uomid@odata.bind': "/uoms(" + unitListData + ")",
+                'uomid@odata.bind': "/uoms(49370858-8eeb-ea11-a815-000d3a091a37)",
                 isproductoverridden: "true",
-                ispriceoverridden: dataOptionSet.priceOverride,
                 priceperunit: parseInt(props.values.pricePerUnit),
                 quantity: parseInt(props.values.quantity),
                 volumediscountamount: parseInt(props.values.volumeDiscount),
@@ -757,16 +919,16 @@ const BookingForm = (props) => {
         } else {
             requestBody = JSON.stringify({
                 'opportunityid@odata.bind': "/opportunities(" + opportunityId + ")",
-                'productid@odata.bind': "/products(" + productsListData + ")",
-                'uomid@odata.bind': "/uoms(" + unitListData + ")",
+                'productid@odata.bind': "/products(" + opportunityProductValue.productId + ")",
+                'uomid@odata.bind': "/uoms(49370858-8eeb-ea11-a815-000d3a091a37)",
                 isproductoverridden: "true",
-                ispriceoverridden: dataOptionSet.priceOverride,
                 priceperunit: parseInt(props.values.pricePerUnit),
                 quantity: parseInt(props.values.quantity),
                 volumediscountamount: parseInt(props.values.volumeDiscount),
                 baseamount: parseInt(props.values.amount)
             })
         }
+        console.log("product selected is", opportunityProductValue.productId);
         console.log("final request body is", requestBody);
 
         fetch(BASE_URL + OPPORTUNITYPRODUCT_ENDPOINT, {
@@ -778,8 +940,6 @@ const BookingForm = (props) => {
             body: requestBody
         }).then((response) => {
             if (response.ok) {
-                unitListData.length = 0;
-                productList.length = 0;
                 fetch("https://syakarhonda.api.crm5.dynamics.com/api/data/v9.1/opportunities(" + opportunityId + ")", {
                     headers: {
                         'Authorization': 'Bearer ' + token,
@@ -862,6 +1022,95 @@ const BookingForm = (props) => {
     }
     const { selectedIndex } = index;
 
+    function renderProductButton() {
+        let element;
+        if (opportunityStatus == 1) {
+            element = (
+                <ButtonX
+
+                    dark={true}
+                    style={styles.productButton}
+                    color={defaultTheme.colors.primary}
+                    onPress={() => {
+                        fetchOpportunityProduct()
+                        //setVisible(true);
+
+
+                    }}
+                    label={t('Show Product')}
+                />
+
+            )
+        }
+        else {
+            element = null;
+        }
+        return element;
+    }
+
+    async function fetchOpportunityProduct() {
+        setLoading(true);
+        const res = await fetch("https://syakarhonda.api.crm5.dynamics.com/api/data/v9.1/opportunityproducts?$filter=_opportunityid_value eq " + opportunityId, {
+            method: 'GET',
+            headers: {
+                'Authorization': 'Bearer ' + token,
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+            }
+
+        })
+        const data = await res.json();
+        console.log("data is", data);
+        console.log("edit mode is", editMode)
+        data.value.map((value, key) => {
+
+            setOpportunityProductValue({
+
+                ...opportunityProductValue,
+                isProductOverride: "" + value.isproductoverridden,
+                productName: "" + value.productname,
+                productId: value._productid_value,
+                newProductName: "" + value.productname,
+                unitid: "" + value._uomid_value,
+                isPriceOverride: "" + value.ispriceoverridden,
+                pricePerUnit: "" + value.priceperunit,
+                volumeDiscountAmount: "" + value.volumediscountamount,
+                quantity: "" + value.quantity,
+                amount: "" + value.baseamount,
+            })
+            fetchUomName(value._uomid_value);
+
+        })
+
+        setLoading(false);
+
+        setVisible(true)
+        console.log("opportunity product values are", opportunityProductValue);
+        //setVisible(true);
+    }
+    console.log("opportunity product values are", opportunityProductValue);
+
+    async function fetchUomName(id) {
+        console.log("uomid is", id);
+        const res = await fetch("https://syakarhonda.api.crm5.dynamics.com/api/data/v9.1/uoms(" + id + ")", {
+            method: 'GET',
+            headers: {
+                'Authorization': 'Bearer ' + token,
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+            }
+
+        })
+        if (res.ok) {
+            const data = await res.json();
+            console.log("uom data is", data);
+
+            setUomName(data.name)
+        } else {
+            setUomName(undefined);
+        }
+    }
+
     return (
         <SafeAreaView style={{ width: '100%', flex: 1, backgroundColor: '#ffffff' }}>
             <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
@@ -887,7 +1136,12 @@ const BookingForm = (props) => {
                                 setPatchMode(true);
                                 setPostUrl(BASE_URL + OPPORTUNITY_ENDPOINT + '(' + bookingId + ')');
                             }}>
-                                <Text style={{ alignSelf: "flex-end", fontSize: 20, fontFamily: Fonts.type.primary, paddingEnd: 16 }}>Edit</Text>
+                                <IconX
+                                    style={{ marginRight: 8, alignSelf: "flex-end" }}
+                                    origin={ICON_TYPE.ICONICONS}
+                                    name={'create-outline'}
+                                    color="black"
+                                />
                             </TouchableOpacity>
                             : null}
                     </View>
@@ -906,8 +1160,15 @@ const BookingForm = (props) => {
 
                         <Formik
                             initialValues={{
-                                firstName: '',
-                                lastName: '',
+                                advanceAmount: dataOptionSet.advanceAmount,
+                                otherFinance: dataOptionSet.otherFinance,
+                                pricePerUnit: opportunityProductValue.pricePerUnit,
+                                volumeDiscount: opportunityProductValue.volumeDiscountAmount,
+                                quantity: opportunityProductValue.quantity,
+                                amount: opportunityProductValue.amount,
+                                exisitingProduct: opportunityProductValue.productName,
+                                totalAmount: dataOptionSet.amount
+
 
                             }}
                             onSubmit={onFormSubmit}
@@ -995,12 +1256,15 @@ const BookingForm = (props) => {
                                         <View style={dropDownStyle}>
                                             <RNPickerSelect
                                                 disabled={editMode ? true : false}
-                                                items={currencyDataItems}
-                                                onValueChange={(value) =>
-                                                    setCurrencyListData(value)
+                                                items={currencyData}
+                                                onValueChange={(value, key) => {
+                                                    setDataOptionSet({
+                                                        ...dataOptionSet, currency: value
+                                                    })
+                                                }
                                                 }
                                                 style={pickerSelectStyles}
-                                                value={currencyListData}
+                                                value={dataOptionSet.currency}
                                                 useNativeAndroidPickerStyle={false}
 
                                             />
@@ -1027,33 +1291,46 @@ const BookingForm = (props) => {
                                         </View>
                                     </View>
 
-                                    <View style={{ flexDirection: 'column', marginBottom: 48, paddingBottom: 48 }}>
+                                    <View style={{ flexDirection: 'column', marginBottom: 16 }}>
                                         <Text style={{ marginBottom: -16, fontFamily: Fonts.type.primary, fontSize: 14, lineHeight: 16 }}>Price</Text>
                                         <View style={dropDownStyleFull}>
                                             <RNPickerSelect
                                                 disabled={editMode ? true : false}
-                                                items={priceListDataItems}
-                                                onValueChange={(value) => {
-                                                    setPriceListData(value)
+                                                items={priceData}
+                                                onValueChange={(value, key) => {
+                                                    setDataOptionSet({
+                                                        ...dataOptionSet, priceList: value
+                                                    })
+                                                    console.log("edit mode is", editMode);
                                                     preBookingPost(value, formikProps)
                                                 }
+
+
                                                 }
                                                 style={pickerSelectStyles}
-                                                value={priceListData}
+                                                value={dataOptionSet.priceList}
                                                 useNativeAndroidPickerStyle={false}
 
                                             />
                                         </View>
                                     </View>
 
-                                    <View style={{ marginTop: -82, marginBottom: 84 }}>
+                                    <View style={{ marginBottom: 84 }}>
 
                                         <StyledInput
+                                         uneditable={true}
                                             label="Total Amount"
-                                            passedValue={priceAmountValue}
-                                            uneditable
+                                            passedValue={dataOptionSet.amount}
+                                            
                                             formikProps={formikProps}
                                             formikKey="totalAmount" />
+
+                                        <View style={{ alignItems: 'flex-start' }}>
+
+                                            {renderProductButton()}
+
+
+                                        </View>
 
 
                                     </View>
@@ -1064,24 +1341,28 @@ const BookingForm = (props) => {
                                         overlayStyle={{ color: 'red', height: "75%", width: "85%" }}
                                         backdropStyle={{ color: "red" }}
                                         onBackdropPress={toggleOverlay}>
-                                        <Text style={{ alignSelf: 'center', fontSize: 16, fontFamily: Fonts.type.bold }}>Product Details</Text>
+                                        <Text style={{ alignSelf: 'center', fontSize: 16, fontFamily: Fonts.type.bold,paddingBottom:16 }}>Product Details</Text>
                                         <ScrollView>
                                             <View style={{ flexDirection: 'column', marginTop: 16 }}>
                                                 <Text style={{ marginBottom: -16, fontFamily: Fonts.type.primary, fontSize: 14, lineHeight: 16 }}>Select Product</Text>
                                                 <View style={dropDownStyleFullModal}>
 
                                                     <RNPickerSelect
+                                                        disabled={editMode ? true : false}
                                                         items={OverrideenConstants}
                                                         onValueChange={value => {
-                                                            setDataOptionSet({
-                                                                ...dataOptionSet, productOverride: value,
+                                                            setOpportunityProductValue({
+                                                                ...opportunityProductValue, isProductOverride: value,
                                                             });
                                                         }}
                                                         style={pickerSelectStyles}
-                                                        value={dataOptionSet.productOverride}
+                                                        value={opportunityProductValue.isProductOverride}
                                                         useNativeAndroidPickerStyle={false}
 
+
                                                     />
+
+
                                                 </View>
 
 
@@ -1090,37 +1371,45 @@ const BookingForm = (props) => {
                                                 {showOptionalFields(formikProps)}
                                             </View>
 
-                                            <View style={{ flexDirection: 'column' }}>
+                                            {/* <View style={{ flexDirection: 'column' }}>
                                                 <Text style={{ marginBottom: -16, fontFamily: Fonts.type.primary, fontSize: 14, lineHeight: 16 }}>Unit</Text>
                                                 <View style={dropDownStyleFullModal}>
 
                                                     <RNPickerSelect
-                                                        items={unitDataItems}
-                                                        onValueChange={(value) => {
-                                                            setUnitListData(value)
+                                                        disabled={editMode ? true : false}
+                                                        items={unitData}
+                                                        onValueChange={(value, key) => {
+                                                            setOpportunityProductValue({
+                                                                ...opportunityProductValue, unitid: value
+                                                            })
                                                         }
                                                         }
                                                         style={pickerSelectStyles}
-                                                        value={unitListData}
+                                                        value={opportunityProductValue.uomName}
                                                         useNativeAndroidPickerStyle={false}
 
                                                     />
+
+                                                    <Text>{uomName}</Text>
+
+
                                                 </View>
-                                            </View>
+                                            </View> */}
 
                                             <View style={{ flexDirection: 'column', marginTop: 16 }}>
                                                 <Text style={{ marginBottom: -16, fontFamily: Fonts.type.primary, fontSize: 14, lineHeight: 16 }}>Price Overridden</Text>
                                                 <View style={dropDownStyleFullModal}>
 
                                                     <RNPickerSelect
+                                                        disabled={editMode ? true : false}
                                                         items={PriceOverrideConstants}
                                                         onValueChange={value => {
-                                                            setDataOptionSet({
-                                                                ...dataOptionSet, priceOverride: value,
+                                                            setOpportunityProductValue({
+                                                                ...opportunityProductValue, isPriceOverride: value,
                                                             });
                                                         }}
                                                         style={pickerSelectStyles}
-                                                        value={dataOptionSet.priceOverride}
+                                                        value={opportunityProductValue.isPriceOverride}
                                                         useNativeAndroidPickerStyle={false}
 
                                                     />
@@ -1129,28 +1418,45 @@ const BookingForm = (props) => {
                                             <View style={{ marginTop: 16 }}>
 
                                                 <StyledInput
+                                                    uneditable={editMode ? true : false}
                                                     type="modal"
                                                     label="Price Per Unit"
                                                     formikProps={formikProps}
-                                                    formikKey="pricePerUnit" />
+                                                    formikKey="pricePerUnit"
+                                                    passedValue={opportunityProductValue.pricePerUnit}
+                                                />
                                             </View>
 
+
                                             <StyledInput
+                                                uneditable={editMode ? true : false}
                                                 type="modal"
                                                 label="Volume Discount"
                                                 formikProps={formikProps}
-                                                formikKey="volumeDiscount" />
+                                                formikKey="volumeDiscount"
+                                                passedValue={opportunityProductValue.volumeDiscountAmount}
+                                            />
+
+
+
                                             <StyledInput
+                                                uneditable={editMode ? true : false}
                                                 type="modal"
                                                 label="Quantity"
                                                 formikProps={formikProps}
-                                                formikKey="quantity" />
+                                                formikKey="quantity"
+                                                passedValue={opportunityProductValue.quantity}
+                                            />
+
 
                                             <StyledInput
+                                                uneditable={editMode ? true : false}
                                                 type="modal"
                                                 label="Amount"
                                                 formikProps={formikProps}
-                                                formikKey="amount" />
+                                                formikKey="amount"
+                                                passedValue={opportunityProductValue.amount}
+                                            />
 
 
                                         </ScrollView>
@@ -1189,14 +1495,13 @@ const BookingForm = (props) => {
                                         bottom: 16,
                                         left: 0,
                                         right: 0,
-                                        flex: 1,
                                         justifyContent: 'space-around',
                                         flexDirection: 'row',
 
                                     }}>
 
                                         <ButtonX
-
+                                            loading={editMode ? true : false}
                                             dark={true}
                                             style={styles.ovalButton}
                                             color={defaultTheme.colors.primary}
@@ -1204,14 +1509,7 @@ const BookingForm = (props) => {
                                             label={t('Save')}
                                         />
 
-                                        <ButtonX
 
-                                            dark={true}
-                                            style={styles.ovalButtonQualify}
-                                            color={defaultTheme.colors.qualify}
-                                            onPress={formikProps.handleSubmit}
-                                            label={t('Next')}
-                                        />
 
                                     </View>
 
@@ -1241,7 +1539,13 @@ const styles = StyleSheet.create({
     },
     ovalButton: {
         borderRadius: 24,
-        width: "40%",
+        width: "90%",
+        marginRight: 16,
+        marginBottom: 16,
+    },
+    productButton: {
+        borderRadius: 24,
+        marginBottom: 16,
     },
     centerButton: {
         alignSelf: 'center',
@@ -1252,7 +1556,7 @@ const styles = StyleSheet.create({
     ovalButtonQualify: {
         borderRadius: 24,
         width: "40%",
-        marginRight: 16,
+        marginRight: 16
     },
 
     body: {
@@ -1364,10 +1668,10 @@ const pickerSelectStyles = StyleSheet.create({
     inputAndroid: {
         fontSize: 16,
         paddingVertical: 8,
-
+        marginLeft: 8,
         fontFamily: Fonts.type.primary,
         borderRadius: 8,
-        color: 'black',
+        color: '#333333',
         // to ensure the text is never behind the icon
     },
 });

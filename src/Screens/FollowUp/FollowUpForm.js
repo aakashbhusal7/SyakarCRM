@@ -2,34 +2,52 @@ import AsyncStorage from '@react-native-community/async-storage';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { Formik } from 'formik';
 import React, { useState } from 'react';
-import { Dimensions, SafeAreaView, ScrollView, StatusBar, StyleSheet, Text, TextInput, View } from 'react-native';
-import { BASE_URL, OPPORTUNITY_ENDPOINT, LEADS_ENDPOINT } from 'react-native-dotenv';
-import * as yup from 'yup';
+import { Dimensions, SafeAreaView, StatusBar, StyleSheet, Text, TextInput, View } from 'react-native';
+import AnimatedLoader from "react-native-animated-loader";
+import { BASE_URL, LEADS_ENDPOINT, OPPORTUNITY_ENDPOINT } from 'react-native-dotenv';
+import { ButtonGroup } from 'react-native-elements';
+import { ScrollView, TouchableOpacity } from 'react-native-gesture-handler';
 import { ButtonX, HeaderButton } from '../../Components';
+import { AuthContext } from '../../Components/context';
+import DateComponent from '../../Components/DateComponent';
 import HeaderText from '../../Components/HeaderText';
+import TimeComponent from '../../Components/TimeComponent';
 import useTranslation from '../../i18n';
 import { IconX, ICON_TYPE } from '../../Icons';
-import { showErrorToast, showSuccessToast } from '../../Lib/Toast';
+import { showErrorToast, showInfoToast, showSuccessToast } from '../../Lib/Toast';
+import Routes from '../../Navigation/Routes';
 import defaultTheme from '../../Themes';
 import theme from '../../Themes/configs/default';
-import { ProgressSteps, ProgressStep } from 'react-native-progress-steps';
-import Routes from '../../Navigation/Routes';
 import Fonts from '../../Themes/Fonts';
-import { ButtonGroup } from 'react-native-elements';
-import { AuthContext } from '../../Components/context';
-import { TouchableOpacity } from 'react-native-gesture-handler';
-import AnimatedLoader from 'react-native-animated-loader';
 
 var width = Dimensions.get('window').width;
 
+const dropDownStyleFull = {
+    height: 45,
+    width: width / 1.115,
+    fontSize: 14,
+    lineHeight: 16,
+
+    backgroundColor: '#ffffff',
+    borderWidth: 1,
+    borderColor: '#EDEDED',
+    borderRadius: 3,
+    marginRight: 8,
+    marginTop: 20,
+    marginBottom: 0,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.5,
+}
 const StyledInput = ({ label, formikProps, uneditable, passedValue, formikKey, ...rest }) => {
+
     const inputStyles = {
         height: 45,
         width: width / 1.115,
         fontSize: 14,
         fontFamily: Fonts.type.primary,
-        color: !uneditable ? "#333333" : "#333333",
         lineHeight: 16,
+        color: !uneditable ? "#333333" : "#333333",
         alignSelf: 'stretch',
         alignItems: 'center',
         backgroundColor: '#ffffff',
@@ -38,7 +56,7 @@ const StyledInput = ({ label, formikProps, uneditable, passedValue, formikKey, .
         borderRadius: 3,
         marginRight: 8,
         paddingLeft: 16,
-        marginBottom: formikKey == "feedback" ? 92 : 0,
+        marginBottom: 0,
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.5,
@@ -49,7 +67,7 @@ const StyledInput = ({ label, formikProps, uneditable, passedValue, formikKey, .
         marginLeft: 0,
         lineHeight: 12,
         marginBottom: 0,
-        fontFamily: Fonts.type.primary,
+        fontFamily: "WorkSans-Regular",
         alignItems: 'center'
     };
     const errorStylesLastName = {
@@ -57,7 +75,7 @@ const StyledInput = ({ label, formikProps, uneditable, passedValue, formikKey, .
         fontSize: 12,
         lineHeight: 12,
         marginLeft: 4,
-        fontFamily: Fonts.type.primary,
+        fontFamily: "WorkSans-Regular",
         alignItems: 'center'
     };
     let lastName = false;
@@ -66,7 +84,29 @@ const StyledInput = ({ label, formikProps, uneditable, passedValue, formikKey, .
         inputStyles.marginBottom = 5;
         errorStyles.marginBottom = 12;
     }
+    if (formikKey == 'firstName') {
+        inputStyles.width = width / 2.25
+    }
+    if (formikKey == 'street') {
+        inputStyles.width = width / 2.25
+    }
+    if (formikKey == 'lastName') {
+        lastName = true;
+        inputStyles.width = width / 2.25
+        inputStyles.marginLeft = 4
+    }
+    if (formikKey == 'countryCode') {
+        inputStyles.width = width / 3
+    }
 
+    if (formikKey == 'dob') {
+        inputStyles.width = width / 1.25
+    }
+    if (formikKey == 'icon') {
+        inputStyles.marginLeft = -9
+        inputStyles.width = width / 8
+        inputStyles.marginRight = -60
+    }
     return (
         <React.Fragment>
 
@@ -75,9 +115,9 @@ const StyledInput = ({ label, formikProps, uneditable, passedValue, formikKey, .
                 <Text style={styles.textLabelStyle}>{label}</Text>
                 <View >
                     <TextInput
-                        style={inputStyles}
                         defaultValue={passedValue != "null" ? passedValue : ''}
                         editable={uneditable ? false : true}
+                        style={inputStyles}
                         underlineColorAndroid="transparent"
                         onChangeText={
                             formikProps.handleChange(formikKey)
@@ -94,52 +134,37 @@ const StyledInput = ({ label, formikProps, uneditable, passedValue, formikKey, .
     );
 };
 
-
-
-const validationSchema = yup.object().shape({
-    firstName: yup
-        .string()
-        .label('FirstName')
-        .min(2)
-        .required('* First name is required'),
-    lastName: yup
-        .string()
-        .label('Last Name')
-        .min(2)
-        .required('* Last name is required'),
-    phoneNumber: yup
-        .number()
-        .label('Phone')
-        .min(2)
-        .required('* Phone no is required'),
-
-});
-const TestRideForm = (props) => {
+const FollowUpForm = (props) => {
     const { signOut } = React.useContext(AuthContext);
-    const [editMode, setEditMode] = React.useState(false);
-    const [postUrl, setPostUrl] = React.useState(BASE_URL + OPPORTUNITY_ENDPOINT);
-    const [token, setToken] = useState();
-    const { t } = useTranslation();
-    const route = useRoute();
-    const [loading, setLoading] = useState(false);
     const navigation = useNavigation();
-    const [opportunityStatus, setOpportunityStatus] = React.useState();
-    const [complete, setComplete] = useState(false);
+    const route = useRoute();
+    const { t } = useTranslation();
+    const [editMode, setEditMode] = React.useState(false);
     const [dataOptionSet, setDataOptionSet] = React.useState({
-        licenseNumber: undefined,
-        existingVehicle: undefined,
-        feedback: undefined,
-        name: undefined,
-        emailAddress: undefined,
-    });
+        followUpDate: undefined
+    })
+    const [opportunityStatus, setOpportunityStatus] = React.useState();
+    const [token, setToken] = useState(undefined);
+    const [productName, setProductName] = useState();
+    const [colorName, setColorName] = useState(undefined);
+    const [colorsListData, setColorsListData] = useState([
+
+    ]);
+    const [reload, setReload] = React.useState(false);
+    const [modelReload, setModelReload] = React.useState(false);
+    const [patchMode, setPatchMode] = React.useState(false);
+    const [postUrl, setPostUrl] = React.useState(BASE_URL + LEADS_ENDPOINT);
+    const [loading, setLoading] = useState(false);
+
+    const [time, setTime] = useState(new Date());
+
+    const [dateShow, setDateShow] = useState(false);
     const [leadParentData, setLeadParentData] = React.useState({
         firstName: undefined,
         lastName: undefined,
+        phone: undefined,
         email: undefined,
-        subject: undefined,
     })
-    const [reload, setReload] = React.useState(false);
-    const [patchMode, setPatchMode] = React.useState(false);
 
     let productId = '';
     let opportunityId = '';
@@ -184,7 +209,6 @@ const TestRideForm = (props) => {
         });
     }, [navigation, theme.colors.headerTitle]);
 
-
     let bookingId = '';
     if (route.params !== undefined) {
         if (route.params.flag == "edit") {
@@ -192,42 +216,33 @@ const TestRideForm = (props) => {
             console.log("passed opportunity id is", route.params.bookingId);
         }
     }
+
+    // let opportunityId = '';
+    // if (route.params !== undefined) {
+    //     if (route.params.flag == "edit") {
+    //         opportunityId = route.params.opportunityId;
+    //         console.log("passed lead id is", route.params.opportunityId);
+    //     }
+    // }
+
     React.useEffect((async) => {
         retrieveToken();
 
     }, [])
 
-    // let interest = '';
-    // let email = '';
-    // let subject = '';
-    // let opportunityId = '';
-    // if (route.params !== undefined) {
-    //     //console.log("passed props is", route.params.flag);
-    //     if (route.params.passingProp != undefined) {
-    //         interest = route.params.passingProp.flag;
-    //         email = route.params.passingProp.email;
-    //         subject = "Interested in " + route.params.passingProp.modelName;
-    //         opportunityId = route.params.passingProp.opportunityId;
-    //     } else {
-    //         opportunityId = route.params.bookingId;
-    //     }
-    // }
-
-    // else {
-    //     console.log("undefined props");
-    // }
 
     async function retrieveToken() {
         try {
             const value = await AsyncStorage.getItem('@token_key');
             if (value !== null) {
                 setToken(value);
-                fetchOpportunityStatus(value)
-
-                // if (reload == false) {
-                //     fetchExistingTestRide(value)
+                fetchOpportunityStatus(value);
+                // if (modelReload == false) {
+                //     fetchExistingFollowUp(value)
                 // }
+                //fetchProducts(value);
                 console.log("token is= " + value);
+
             }
         } catch (error) {
             console.log("error is", error);
@@ -251,20 +266,25 @@ const TestRideForm = (props) => {
             if (reload == false) {
 
                 console.log('opportunity status is', opportunityStatus);
+                fetchExistingFollowUp(token)
 
-                if (data.agile_interested == 2) {
+                if (data.agile_followuprequired == 1) {
                     console.log("here inside");
                     //setLoading(true);
-                    fetchExistingTestRide(token)
+                    // setDate(new Date());
+                    //setLoading(false);
+                    //fetchExistingFollowUp(token)
                 } else {
                     setLoading(false);
-                    console.log("agile interested is", data.agile_interested);
+                    setDate(new Date());
+                    console.log("agile interested is", data.agile_followuprequired);
                     console.log("entered here");
 
                 }
 
             }
         } else {
+            setLoading(false);
             if (res.status == 401) {
                 signOut();
             }
@@ -273,8 +293,8 @@ const TestRideForm = (props) => {
         return opportunityStatus;
     }
 
-
-    function fetchExistingTestRide(token) {
+    function fetchExistingFollowUp(token) {
+        console.log("bboking id is", opportunityId);
         let errorMessage = '';
         if (bookingId !== '' || opportunityId !== '') {
             fetch("https://syakarhonda.api.crm5.dynamics.com/api/data/v9.1/opportunities(" + opportunityId + ")", {
@@ -284,36 +304,45 @@ const TestRideForm = (props) => {
                     'Content-Type': 'application/json',
                 }
             }).then((res) => {
+                console.log("res code is", res.status);
                 if (res.ok) {
                     res.json().then(
                         (resJson) => {
-                            console.log("lead is is", resJson._originatingleadid_value);
                             fetchParentLeadData(resJson._originatingleadid_value, token);
-                            setDataOptionSet({
-                                licenseNumber: "" + resJson.agile_testridelicense,
-                                existingVehicle: "" + resJson.agile_testrideexistingvechile,
-                                feedback: "" + resJson.agile_testridefeedback,
-                                name: "" + resJson.name,
-                                email: "" + resJson.emailaddress,
+                            if (resJson.agile_followuprequired == 1) {
+                                setDataOptionSet({
+                                    followUpDate: "" + resJson.agile_followup
 
-                            })
-                            setEditMode(true);
-                            setLoading(false);
+                                })
 
+                                setEditMode(true);
+                                setLoading(false);
+                            } else {
+                                console.log("reached here")
+                                setDataOptionSet({
+                                    followUpDate: "" + new Date()
+
+                                })
+
+                            }
                         })
                 } else {
                     setLoading(false);
                     if (res.status == 401) {
                         signOut();
                     }
+
                     res.json().then((body) => {
                         errorMessage = body.error.message;
-                        showErrorToast(errorMessage)
                         console.log("error message is", errorMessage);
                     });
-                    console.log("error in edit lead form");
+                    console.log("error in edit followup form");
                 }
-            })
+
+
+
+            }
+            )
         } else {
             setLoading(false);
         }
@@ -334,7 +363,7 @@ const TestRideForm = (props) => {
                         setLeadParentData({
                             firstName: "" + resJson.firstname,
                             lastName: "" + resJson.lastname,
-                            subject: "" + resJson.subject,
+                            phone: "" + resJson.mobilephone,
                             email: "" + resJson.emailaddress1
                         })
                         setLoading(false);
@@ -356,22 +385,14 @@ const TestRideForm = (props) => {
         })
     }
 
-    console.log("data option sets are", dataOptionSet);
+    const [date, setDate] = useState(dataOptionSet.followUpDate);
 
     const onFormSubmit = (values) => {
-        console.log("values are", values);
-        postForm(values.licenseNumber, values.existingVehicle, values.feedback, subject)
-    }
-
-    const postForm = (licenseNumber, vehicle, feedback, subject) => {
         let requestBody;
         let errorMessage = '';
         requestBody = JSON.stringify({
-            agile_testridelicense: licenseNumber,
-            agile_testrideexistingvechile: vehicle,
-            agile_testridefeedback: feedback,
-            agile_interested: "2",
-            name: subject !== '' ? subject : dataOptionSet.name
+            agile_followup: date,
+            agile_followuprequired: "1"
         });
         console.log("request body is", requestBody);
         fetch(BASE_URL + OPPORTUNITY_ENDPOINT + "(" + opportunityId + ")", {
@@ -383,13 +404,12 @@ const TestRideForm = (props) => {
             body: requestBody
         }).then((response) => {
             if (response.ok) {
-                setComplete(true);
                 setLoading(false);
-                !patchMode ? showSuccessToast("Successfully setup test ride form") : showSuccessToast("Successfully updated test ride form");
-                navigation.navigate(Routes.TEST_RIDE_LIST_SCREEN)
+                !patchMode ? showSuccessToast("Successfully setup followup form") : showSuccessToast("Successfully updated followup form");
+                navigation.navigate(Routes.FOLLOW_UP_LIST_SCREEN)
                 navigation.reset({
                     index: 0,
-                    routes: [{ name: 'TEST_RIDE_LIST' }]
+                    routes: [{ name: 'FOLLOW_UP_LIST' }]
                 })
             }
             else {
@@ -405,22 +425,9 @@ const TestRideForm = (props) => {
         }).catch(error => {
             showErrorToast("Error while submitting the form. Please try again!");
         })
-
     }
 
     const component1 = () =>
-        <View style={{ flexDirection: 'row' }}>
-            <IconX
-                style={{ marginRight: 8 }}
-                origin={ICON_TYPE.MATERIAL_ICONS}
-                name={'assignment'}
-                color="black"
-            />
-            <Text style={{ fontFamily: Fonts.type.semiBold, fontSize: 16 }}>
-                Lead
-            </Text>
-        </View>
-    const component2 = () =>
         <View style={{ flexDirection: 'row' }}>
             <IconX
                 style={{ marginRight: 8 }}
@@ -428,20 +435,27 @@ const TestRideForm = (props) => {
                 name={'book-outline'}
                 color="black"
             />
-            <Text style={{ fontFamily: Fonts.type.semiBold, fontSize: 16 }}>Booking
-            </Text>
+            <Text style={{ fontFamily: Fonts.type.semiBold, fontSize: 16 }}>Booking</Text>
+        </View>
+    const component2 = () =>
+        <View style={{ flexDirection: 'row' }}>
+            <IconX
+                style={{ marginRight: 8 }}
+                origin={ICON_TYPE.ICONICONS}
+                name={'bicycle-outline'}
+                color="black"
+            />
+            <Text style={{ fontFamily: Fonts.type.semiBold, fontSize: 16 }}>Test Ride</Text>
         </View>
     const component3 = () =>
         <View style={{ flexDirection: 'row' }}>
             <IconX
                 style={{ marginRight: 8 }}
-                origin={ICON_TYPE.ICONICONS}
-                name={'call-outline'}
+                origin={ICON_TYPE.MATERIAL_ICONS}
+                name={'assignment'}
                 color="black"
             />
-            <Text style={{ fontFamily: Fonts.type.semiBold, fontSize: 16 }}>
-                Follow Up
-            </Text>
+            <Text style={{ fontFamily: Fonts.type.semiBold, fontSize: 16 }}>Assign</Text>
         </View>
     const [index, setIndex] = React.useState(1);
     const buttons = [{ element: component1 }, { element: component2 }, { element: component3 }]
@@ -450,52 +464,33 @@ const TestRideForm = (props) => {
         console.log("selected index is", selectedIndex);
         setIndex(selectedIndex);
         if (selectedIndex == 0) {
-            navigation.navigate(Routes.LEAD_SCREEN)
+            if (dataOptionSet.opportunityId !== null) {
+                navigation.navigate(Routes.BOOKING_FORM_SCREEN, route.params = {
+                    passingProp: passingProp
+                })
+            } else {
+                showInfoToast("Lead not qualified. Please qualify to proceed to booking")
+            }
         }
         if (selectedIndex == 1) {
-            navigation.navigate(Routes.BOOKING_FORM_SCREEN)
+            if (dataOptionSet.opportunityId !== null) {
+                navigation.navigate(Routes.TEST_RIDE_FORM_SCREEN, route.params = {
+                    passingProp: passingProp,
+                    flag: 2
+                })
+            } else {
+                showInfoToast("Lead not qualified. Please qualify to proceed for test ride")
+            }
         }
     }
     const { selectedIndex } = index;
 
-    function displayLeadInfo(formikProps) {
-        let element;
-        if (editMode) {
-            element = (
-                <View>
-                    <StyledInput
-                        uneditable={true}
-                        label="First Name"
-                        formikProps={formikProps}
-                        formikKey="firstName"
-                        passedValue={leadParentData.firstName}
-                    />
-                    <StyledInput
-                        uneditable={true}
-                        label="Last Name"
-                        formikProps={formikProps}
-                        formikKey="lastName"
-                        passedValue={leadParentData.lastName}
-                    />
-                    <StyledInput
-                        uneditable={true}
-                        label="Email"
-                        formikProps={formikProps}
-                        formikKey="email"
-                        passedValue={leadParentData.email}
-                    />
-                </View>
 
-            );
-        } else {
-            element = null;
-        }
-        return element;
-    }
-
-
+    console.log("passed date is", date);
+    console.log("passed time is", time);
     return (
-        <SafeAreaView style={{ width: '100%', flex: 1, backgroundColor: '#ffffff' }}>
+        <SafeAreaView style={{ width: '100%', flex: 1, backgroundColor: "#ffffff" }}>
+
             <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
             {loading &&
                 <AnimatedLoader
@@ -507,10 +502,11 @@ const TestRideForm = (props) => {
                 />
             }
             {!loading &&
+
                 <View style={{ backgroundColor: '#ffffff', marginTop: 24, flex: 1 }}>
 
                     <View style={styles.body}>
-                        <HeaderText>Test Ride</HeaderText>
+                        <HeaderText>Follow Up</HeaderText>
                         {editMode ?
                             <TouchableOpacity onPress={() => {
                                 setEditMode(false);
@@ -527,73 +523,85 @@ const TestRideForm = (props) => {
                             </TouchableOpacity>
                             : null}
                     </View>
+                    <View style={{ marginBottom: 42, paddingBottom: 16, flex: 1 }}>
 
-                    <View style={{ paddingBottom: 16 }}>
                         <ButtonGroup
                             onPress={updateIndex}
                             selectedIndex={selectedIndex}
                             buttons={buttons}
                             containerStyle={{ height: 32 }} />
 
-                    </View>
 
+
+                    </View>
                     <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
 
                         <Formik
-
-                            onSubmit={onFormSubmit}
                             initialValues={{
-                                licenseNumber: dataOptionSet.licenseNumber,
-                                existingVehicle: dataOptionSet.existingVehicle,
-                                feedback: dataOptionSet.feedback,
+                                nextButton: false,
 
                             }}
+                            onSubmit={onFormSubmit}
+
 
                         >
+
                             {formikProps => (
-
                                 <SafeAreaView style={{ marginLeft: 16, marginTop: 13, flex: 1 }}>
+                                    <View style={{ flexDirection: 'row', marginTop: 8 }}>
+                                        <StyledInput
+                                            uneditable={true}
+                                            label="First Name"
+                                            formikProps={formikProps}
+                                            formikKey="firstName"
+                                            passedValue={leadParentData.firstName}
+                                        />
 
-
-                                    {displayLeadInfo(formikProps)}
-
+                                        <StyledInput
+                                            uneditable={true}
+                                            label="Last Name"
+                                            formikProps={formikProps}
+                                            formikKey="lastName"
+                                            passedValue={leadParentData.lastName}
+                                        />
+                                    </View>
                                     <StyledInput
-                                        uneditable={editMode ? true : false}
-                                        label="License No."
+                                        uneditable={true}
+                                        label="Mobile Number"
                                         formikProps={formikProps}
-                                        formikKey="licenseNumber"
-                                        passedValue={dataOptionSet.licenseNumber}
+                                        formikKey="phoneNumber"
+                                        passedValue={leadParentData.phone}
                                     />
 
                                     <StyledInput
-                                        uneditable={editMode ? true : false}
-                                        label="Existing Vehicle"
+                                        uneditable={true}
+                                        label="Email Address"
                                         formikProps={formikProps}
-                                        formikKey="existingVehicle"
-                                        passedValue={dataOptionSet.existingVehicle}
+                                        formikKey="emailAddress"
+                                        passedValue={leadParentData.email}
                                     />
 
-                                    <StyledInput
-                                        uneditable={editMode ? true : false}
-                                        label="Feedback"
-                                        formikProps={formikProps}
-                                        formikKey="feedback"
-                                        passedValue={dataOptionSet.feedback}
-                                    />
+                                    <Text style={styles.textLabelStyle}>Follow Up Date</Text>
+
+                                    <View style={{ marginTop: -16 }}>
+                                        <DateComponent
+                                            edit={!editMode ? true : false}
+                                            date={dataOptionSet.followUpDate !== null ? dataOptionSet.followUpDate : new Date()}
+                                            getData={(data) => {
+                                                setDate(data)
+                                            }} />
+                                    </View>
 
 
 
 
                                     <View style={{
-                                        position: 'absolute',
-                                        bottom: 16,
-                                        left: 0,
-                                        right: 0,
-                                        flex: 1,
-                                        justifyContent: 'space-around',
-                                        flexDirection: 'row',
+                                        marginTop: 8,
+                                        marginBottom: 16,
+                                        marginLeft: 16,
 
                                     }}>
+
                                         <ButtonX
                                             loading={editMode ? true : false}
                                             dark={true}
@@ -602,28 +610,23 @@ const TestRideForm = (props) => {
                                             onPress={formikProps.handleSubmit}
                                             label={t('Save')}
                                         />
-
-
                                     </View>
-
                                 </SafeAreaView>
-
 
                             )}
                         </Formik>
-
                     </ScrollView>
                 </View>
             }
-        </SafeAreaView>
-    );
+        </SafeAreaView >
+    )
 }
 
 const styles = StyleSheet.create({
     textLabelStyle: {
-        fontSize: 15,
+        fontSize: 14,
         fontFamily: Fonts.type.primary,
-        lineHeight: 14,
+        lineHeight: 16,
         marginTop: 2,
         marginBottom: 4,
         marginLeft: 4,
@@ -633,12 +636,11 @@ const styles = StyleSheet.create({
         borderRadius: 24,
         width: "90%",
         marginRight: 16,
-        marginBottom: 16,
     },
     ovalButtonQualify: {
         borderRadius: 24,
         width: "40%",
-        marginRight: 16,
+        marginLeft: 8
     },
 
     body: {
@@ -706,14 +708,14 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         flexWrap: 'wrap',
     },
-    lottie: {
-        width: 100,
-        height: 100
-    },
     radio: {
         marginTop: 4,
         marginRight: 12,
         color: 'red'
+    },
+    lottie: {
+        width: 100,
+        height: 100
     },
     dropDownStyle: {
         height: 45,
@@ -735,4 +737,25 @@ const styles = StyleSheet.create({
     },
 })
 
-export default TestRideForm;
+const pickerSelectStyles = StyleSheet.create({
+    inputIOS: {
+        fontSize: 12,
+        lineHeight: 14,
+        marginTop: 2,
+        marginBottom: 4,
+        marginLeft: 4,
+        color: '#333333',
+        paddingRight: 10, // to ensure the text is never behind the icon
+    },
+    inputAndroid: {
+        fontSize: 14,
+        paddingVertical: 8,
+        marginLeft: 8,
+        fontFamily: Fonts.type.primary,
+        borderRadius: 8,
+        color: '#333333',
+        // to ensure the text is never behind the icon
+    },
+});
+
+export default FollowUpForm;

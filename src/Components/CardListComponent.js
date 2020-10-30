@@ -38,6 +38,9 @@ const CardListComponent = (props) => {
     if (props.flag === "lead") {
         url = BASE_URL + LEADS_ENDPOINT + '(' + props.data.leadId + ')';
     }
+    if(props.flag==="followUp"){
+        url = BASE_URL + OPPORTUNITY_ENDPOINT + '(' + props.data.bookingId + ')';
+    }
     const rightButtons = [
         <TouchableOpacity onPress={() => {
             fetch(url, {
@@ -68,7 +71,11 @@ const CardListComponent = (props) => {
                         })
                         showSuccessToast("Successfully deleted test ride item")
                     } else {
-
+                        navigation.reset({
+                            index: 0,
+                            routes: [{ name: 'FOLLOW_UP_LIST' }]
+                        })
+                        showSuccessToast("Successfully deleted follow up item")
                     }
 
                 } else {
@@ -148,12 +155,18 @@ const CardListComponent = (props) => {
             <View >
                 <Swipeable rightButtons={rightButtons} >
                     <Card containerStyle={{ borderRadius: 10, opacity: 100, borderWidth: 0 }}>
+                        <TouchableOpacity onPress={() => {
+                            navigation.navigate(Routes.FOLLOW_UP_FORM_SCREEN, {
+                                flag: 'edit',
+                                bookingId: props.data.bookingId
 
+                            })
+                        }}>
 
-                        <Text style={styles.nameStyle}>{props.data.name}</Text>
-                        <Text style={[styles.subHeaderStyle, { marginTop: 4 }]}>{props.data.email}</Text>
+                            <Text style={styles.nameStyle}>{props.data.name}</Text>
+                            <Text style={[styles.subHeaderStyle, { marginTop: 4 }]}>{props.data.email}</Text>
 
-
+                        </TouchableOpacity>
                     </Card>
                 </Swipeable>
             </View>);
@@ -166,7 +179,7 @@ const CardListComponent = (props) => {
                         <TouchableOpacity onPress={() => {
                             navigation.navigate(Routes.LEAD_SCREEN, {
                                 flag: 'edit',
-                                
+
                                 leadId: props.data.leadId
 
                             })
