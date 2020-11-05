@@ -374,37 +374,39 @@ const TestRideForm = (props) => {
             name: subject !== '' ? subject : dataOptionSet.name
         });
         console.log("request body is", requestBody);
-        fetch(BASE_URL + OPPORTUNITY_ENDPOINT + "(" + opportunityId + ")", {
-            method: 'PATCH',
-            headers: {
-                'Authorization': 'Bearer ' + token,
-                'Content-Type': 'application/json'
-            },
-            body: requestBody
-        }).then((response) => {
-            if (response.ok) {
-                setComplete(true);
-                setLoading(false);
-                !patchMode ? showSuccessToast("Successfully setup test ride form") : showSuccessToast("Successfully updated test ride form");
-                navigation.navigate(Routes.TEST_RIDE_LIST_SCREEN)
-                navigation.reset({
-                    index: 0,
-                    routes: [{ name: 'TEST_RIDE_LIST' }]
-                })
-            }
-            else {
-                if (response.status == 401) {
-                    showErrorToast("User session expired!")
-                    signOut();
+        if (opportunityId !== undefined) {
+            fetch(BASE_URL + OPPORTUNITY_ENDPOINT + "(" + opportunityId + ")", {
+                method: 'PATCH',
+                headers: {
+                    'Authorization': 'Bearer ' + token,
+                    'Content-Type': 'application/json'
+                },
+                body: requestBody
+            }).then((response) => {
+                if (response.ok) {
+                    setComplete(true);
+                    setLoading(false);
+                    !patchMode ? showSuccessToast("Successfully setup test ride form") : showSuccessToast("Successfully updated test ride form");
+                    navigation.navigate(Routes.TEST_RIDE_LIST_SCREEN)
+                    navigation.reset({
+                        index: 0,
+                        routes: [{ name: 'TEST_RIDE_LIST' }]
+                    })
                 }
-                response.json().then((body) => {
-                    errorMessage = body.error.message;
-                    showErrorToast(errorMessage);
-                });
-            }
-        }).catch(error => {
-            showErrorToast("Error while submitting the form. Please try again!");
-        })
+                else {
+                    if (response.status == 401) {
+                        showErrorToast("User session expired!")
+                        signOut();
+                    }
+                    response.json().then((body) => {
+                        errorMessage = body.error.message;
+                        showErrorToast(errorMessage);
+                    });
+                }
+            }).catch(error => {
+                showErrorToast("Error while submitting the form. Please try again!");
+            })
+        }
 
     }
 

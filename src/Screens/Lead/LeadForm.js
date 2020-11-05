@@ -32,6 +32,8 @@ import AnimatedLoader from "react-native-animated-loader";
 import { AuthContext } from '../../Components/context';
 import { set } from 'lodash';
 import { ButtonGroup } from 'react-native-elements';
+import MultiSelect from 'react-native-multiple-select';
+import call from 'react-native-phone-call'
 
 
 var dataList = [];
@@ -64,6 +66,7 @@ const dropDownStyleColor = {
     backgroundColor: '#ffffff',
     borderWidth: 1,
     borderColor: '#EDEDED',
+    paddingLeft:8,
     borderRadius: 3,
     marginRight: 8,
     marginTop: 20,
@@ -75,7 +78,7 @@ const dropDownStyleColor = {
 }
 const dropDownStyleModel = {
     height: 45,
-    width: '100%',
+    width: '105%',
     fontSize: 14,
     lineHeight: 16,
 
@@ -184,7 +187,7 @@ const StyledInput = ({ label, formikProps, uneditable, passedValue, formikKey, .
                 <Text style={styles.textLabelStyle}>{label}</Text>
                 <View >
                     <TextInput
-                        defaultValue={passedValue != "null" ? passedValue : ''}
+                        defaultValue={passedValue != null ? passedValue : ''}
                         editable={uneditable ? false : true}
                         style={inputStyles}
                         underlineColorAndroid="transparent"
@@ -224,6 +227,7 @@ const validationSchema = yup.object().shape({
         .typeError('numeric value is required'),
     emailAddress: yup
         .string()
+        .nullable()
         .trim()
         .email('* Invalid Email')
 
@@ -240,6 +244,14 @@ const LeadForm = (props) => {
     const [modelData, setModelData] = React.useState([]);
     const [colorData, setColorData] = React.useState([]);
     const [editMode, setEditMode] = React.useState(false);
+    const [selectedItems, setSelectedItems] = React.useState({
+        selectedItems: [],
+
+    })
+    const [selectedItemsChosen, setSelectedItemsChosen] = React.useState({
+        selectedItemsChosen: [],
+
+    })
     const [dataOptionSet, setDataOptionSet] = React.useState({
         products: [],
         leadNature: undefined,
@@ -394,9 +406,9 @@ const LeadForm = (props) => {
                         (resJson) => {
                             setDataOptionSet({
                                 leadNature: "" + resJson.new_leadnature,
-                                currentVehicle: "" + resJson.new_currentbikescoote,
-                                ridingFor: "" + resJson.agile_ridingfor,
-                                occupation: "" + resJson.agile_occupation,
+                                currentVehicle: resJson.new_currentbikescoote !== null ? "" + resJson.new_currentbikescoote : resJson.new_currentbikescoote,
+                                ridingFor: resJson.agile_ridingfor !== null ? "" + resJson.agile_ridingfor : resJson.agile_ridingfor,
+                                occupation: resJson.agile_occupation !== null ? "" + resJson.agile_occupation : resJson.agile_occupation,
                                 city: "" + resJson.address1_addresstypecode,
                                 agileCategory: "" + resJson.agile_catogeries,
                                 leadSource: "" + resJson.leadsourcecode,
@@ -418,8 +430,14 @@ const LeadForm = (props) => {
                                 subject: "" + resJson.subject,
                                 gender: "" + resJson.agile_gender,
                                 opportunityId: resJson._qualifyingopportunityid_value,
-                                street: "" + resJson.address1_name,
+                                street: resJson.address1_name !== null ? "" + resJson.address1_name : resJson.address1_name,
 
+                            })
+                            setSelectedItemsChosen({
+                                selectedItemsChosen: resJson.agile_reasontochoose,
+                            })
+                            setSelectedItems({
+                                selectedItems: resJson.agile_reasonforleaving,
                             })
                             setPassingProp({
                                 firstName: resJson.firstname,
@@ -531,6 +549,14 @@ const LeadForm = (props) => {
         "opportunityId": dataOptionSet.opportunityId
     });
 
+    const onSelectedItemsChange = selectedItems => {
+        setSelectedItems({ selectedItems });
+    }
+
+    const onSelectedItemsChosenChange = selectedItemsChosen => {
+        setSelectedItemsChosen({ selectedItemsChosen });
+    }
+
 
     const onFormSubmit = (values) => {
 
@@ -566,8 +592,8 @@ const LeadForm = (props) => {
                 dataOptionSet.ridingFor,
                 values.otherModel,
                 values.previousModel,
-                dataOptionSet.reasonToChoose,
-                dataOptionSet.reasonToReject
+                selectedItemsChosen.selectedItemsChosen.toString(),
+                selectedItems.selectedItems.toString()
             );
         }
     }
@@ -605,6 +631,7 @@ const LeadForm = (props) => {
                 'agile_Colors@odata.bind': "/agile_colorses(" + dataOptionSet.color + ")",
                 'agile_SalePerson@odata.bind': "/contacts(" + contactKey + ")",
             })
+            console.log("request body is", requestBody);
         }
 
         else {
@@ -637,7 +664,9 @@ const LeadForm = (props) => {
                 'agile_InterestedModel@odata.bind': "/products(" + dataOptionSet.model + ")",
                 'agile_SalePerson@odata.bind': "/contacts(" + contactKey + ")",
             })
+            console.log("request body is", requestBody);
         }
+        console.log("request body is", requestBody);
         fetch(postUrl, {
             method: !patchMode ? 'POST' : 'PATCH',
             headers: {
@@ -978,6 +1007,8 @@ const LeadForm = (props) => {
     console.log("product lisr data is", productsListData);
     console.log("first name is", dataOptionSet.firstName);
 
+    console.log("values selected are", selectedItems.selectedItems);
+
     return (
         <SafeAreaView style={{ width: '100%', flex: 1, backgroundColor: "#ffffff" }}>
 
@@ -1001,18 +1032,37 @@ const LeadForm = (props) => {
                             <TouchableOpacity onPress={() => {
                                 setEditMode(false);
                                 setModelReload(true);
+                                setSelectedItems({ selectedItems: [] })
+                                setSelectedItemsChosen({ selectedItemsChosen: [] })
                                 setPatchMode(true);
                                 setPostUrl(BASE_URL + LEADS_ENDPOINT + '(' + leadId + ')');
                             }}>
-                              
-                                <IconX
-                                    style={{ marginRight: 8,alignSelf:"flex-end" }}
-                                    origin={ICON_TYPE.ICONICONS}
-                                    name={'create-outline'}
-                                    color="black"
-                                />
+                                <View style={{ flexDirection: 'row', alignSelf: 'flex-end' }}>
+                                    <IconX
+                                        style={{ marginRight: 8, alignSelf: "flex-end" }}
+                                        origin={ICON_TYPE.ICONICONS}
+                                        name={'create-outline'}
+                                        color="black"
+                                    />
+
+                                </View>
                             </TouchableOpacity>
                             : null}
+                        <TouchableOpacity onPress={() => {
+                            const args = {
+                                number: dataOptionSet.phoneNumber,
+                                prompt: true,
+                            };
+                            call(args).catch(console.error);
+
+                        }}>
+                            <IconX
+                                style={{ marginRight: 8, alignSelf: "flex-start", marginLeft: 16 }}
+                                origin={ICON_TYPE.ICONICONS}
+                                name={'call-outline'}
+                                color="black"
+                            />
+                        </TouchableOpacity>
                     </View>
                     <View style={{ marginBottom: 42, paddingBottom: 16, flex: 1 }}>
 
@@ -1212,16 +1262,16 @@ const LeadForm = (props) => {
                                         </View>
                                     </View>
 
-                                    <StyledInput
+                                    {/* <StyledInput
                                         uneditable={editMode ? true : false}
                                         label="Address"
                                         formikProps={formikProps}
                                         formikKey="addeess"
-                                    />
+                                    /> */}
                                     <View style={{ flexDirection: 'row' }}>
                                         <StyledInput
                                             uneditable={editMode ? true : false}
-                                            label="Street"
+                                            label="Address"
                                             formikProps={formikProps}
                                             formikKey="street"
                                             passedValue={dataOptionSet.street}
@@ -1286,7 +1336,108 @@ const LeadForm = (props) => {
                                         {displayFieldsForOldCustomers(formikProps)}
                                     </View>
 
-                                    <View style={{ flexDirection: 'column' }}>
+                                    <View style={{ flexDirection: 'column', marginBottom: 22 }}>
+                                        <Text style={{ marginBottom: -16, fontSize: 14, lineHeight: 16, color: '#333333', fontFamily: Fonts.type.primary }}>Reason To Choose</Text>
+                                    </View>
+                                    <View style={{
+                                        flex: 1,
+                                        justifyContent: 'center',
+                                        alignItems: 'center',
+                                        marginBottom: 30,
+                                        borderWidth: 1,
+                                        borderColor: '#EDEDED',
+                                        borderRadius: 3,
+                                        marginRight: 24,
+                                        backgroundColor: '#F5FCFF'
+                                    }}>
+                                        <View style={{
+                                            width: '100%',
+                                            marginBottom: -6,
+                                            marginTop: 6,
+
+                                        }}>
+                                            <MultiSelect
+                                                hideSubmitButton={editMode ? true : false}
+                                                hideTags
+                                                items={ChooseReasonConstants}
+                                                uniqueKey="id"
+                                                onSelectedItemsChange={onSelectedItemsChange}
+                                                selectedItems={selectedItems.selectedItems}
+                                                selectText=""
+                                                searchInputPlaceholderText="Search Items..."
+                                                onChangeInput={(text) => console.log(text)}
+                                                altFontFamily={Fonts.type.primary}
+                                                selectedItemFontFamily={Fonts.type.primary}
+                                                textColor="#333333"
+                                                itemFontFamily={Fonts.type.primary}
+                                                tagRemoveIconColor="#CCC"
+                                                tagBorderColor="#CCC"
+                                                tagTextColor="#CCC"
+                                                fontFamily={Fonts.type.primary}
+                                                selectedItemTextColor="#CCC"
+                                                selectedItemIconColor="#CCC"
+                                                itemTextColor="#333333"
+                                                displayKey="name"
+                                                searchInputStyle={{ color: '#CCC' }}
+                                                submitButtonColor="#CCC"
+                                                submitButtonText="Submit"
+                                            />
+
+                                        </View>
+                                    </View>
+
+
+                                    <View style={{ flexDirection: 'column', marginBottom: 22 }}>
+                                        <Text style={{ marginBottom: -16, fontSize: 14, lineHeight: 16, color: '#333333', fontFamily: Fonts.type.primary }}>Reason To Reject</Text>
+                                    </View>
+                                    <View style={{
+                                        flex: 1,
+                                        justifyContent: 'center',
+                                        alignItems: 'center',
+                                        marginBottom: 30,
+                                        borderWidth: 1,
+                                        borderColor: '#EDEDED',
+                                        borderRadius: 3,
+                                        marginRight: 24,
+                                        backgroundColor: '#F5FCFF'
+                                    }}>
+                                        <View style={{
+                                            width: '100%',
+                                            marginBottom: -6,
+                                            marginTop: 6,
+
+                                        }}>
+                                            <MultiSelect
+                                                hideSubmitButton={editMode ? true : false}
+                                                hideTags
+                                                items={RejectReasonConstants}
+                                                uniqueKey="id"
+                                                onSelectedItemsChange={onSelectedItemsChosenChange}
+                                                selectedItems={selectedItemsChosen.selectedItemsChosen}
+                                                selectText=""
+                                                searchInputPlaceholderText="Search Items..."
+                                                onChangeInput={(text) => console.log(text)}
+                                                altFontFamily={Fonts.type.primary}
+                                                selectedItemFontFamily={Fonts.type.primary}
+                                                textColor="#333333"
+                                                itemFontFamily={Fonts.type.primary}
+                                                tagRemoveIconColor="#CCC"
+                                                tagBorderColor="#CCC"
+                                                tagTextColor="#CCC"
+                                                fontFamily={Fonts.type.primary}
+                                                selectedItemTextColor="#CCC"
+                                                selectedItemIconColor="#CCC"
+                                                itemTextColor="#333333"
+                                                displayKey="name"
+                                                searchInputStyle={{ color: '#CCC' }}
+                                                submitButtonColor="#CCC"
+                                                submitButtonText="Submit"
+                                            />
+
+                                        </View>
+                                    </View>
+
+                                    {/* <View style={{ flexDirection: 'column' }}>
                                         <Text style={{ marginBottom: -16, fontSize: 14, lineHeight: 16, color: '#333333', fontFamily: Fonts.type.primary }}>Reason To Choose</Text>
                                         <View style={dropDownStyleFull}>
 
@@ -1304,8 +1455,8 @@ const LeadForm = (props) => {
 
                                             />
                                         </View>
-                                    </View>
-                                    <View style={{ flexDirection: 'column', marginTop: 8 }}>
+                                    </View> */}
+                                    {/* <View style={{ flexDirection: 'column', marginTop: 8 }}>
                                         <Text style={{ marginBottom: -16, fontSize: 14, lineHeight: 16, color: '#333333', fontFamily: Fonts.type.primary }}>Reason To Leave</Text>
                                         <View style={dropDownStyleFull}>
 
@@ -1323,7 +1474,7 @@ const LeadForm = (props) => {
 
                                             />
                                         </View>
-                                    </View>
+                                    </View> */}
 
 
 

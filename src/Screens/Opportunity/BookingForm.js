@@ -555,11 +555,11 @@ const BookingForm = (props) => {
                                 revenue: "" + resJson.isrevenuesystemcalculated,
                                 otherFinance: resJson.agile_financeothers,
                                 priceList: "" + resJson._pricelevelid_value,
-                                amount:  ""+resJson.totalamount,
+                                amount: "" + resJson.totalamount,
 
 
                             })
-                            console.log("total amount is",resJson.totalamount);
+                            console.log("total amount is", resJson.totalamount);
                             setEditMode(true);
                             setLoading(false);
 
@@ -658,14 +658,14 @@ const BookingForm = (props) => {
         let requestBody;
         let errorMessage = '';
         requestBody = JSON.stringify({
-            'transactioncurrencyid@odata.bind': "/transactioncurrencies(" + dataOptionSet.currency + ")",
+            'transactioncurrencyid@odata.bind': "/transactioncurrencies(d8837250-8deb-ea11-a815-000d3a091a37)",
             'pricelevelid@odata.bind': "/pricelevels(" + dataOptionSet.priceList + ")",
             purchasetimeframe: dataOptionSet.timeFrame,
             new_advanceamt: values.advanceAmount,
             new_modeofpayment: dataOptionSet.paymentMode,
             agile_financechoices: dataOptionSet.financeChoice,
             agile_financeothers: values.otherFinance,
-            isrevenuesystemcalculated: dataOptionSet.revenue,
+            isrevenuesystemcalculated: RevenueConstants[0].value,
             quantity: props.quantity,
             agile_interested: "1",
             totalamount: parseInt(priceAmountValue),
@@ -781,70 +781,72 @@ const BookingForm = (props) => {
         console.log("other props are", props);
         let errorMessage = '';
         let requestBody = JSON.stringify({
-            'transactioncurrencyid@odata.bind': "/transactioncurrencies(" + dataOptionSet.currency + ")",
+            'transactioncurrencyid@odata.bind': "/transactioncurrencies(d8837250-8deb-ea11-a815-000d3a091a37)",
             'pricelevelid@odata.bind': "/pricelevels(" + value + ")",
             purchasetimeframe: dataOptionSet.timeFrame,
             new_advanceamt: props.advanceAmount,
             new_modeofpayment: dataOptionSet.paymentMode,
             agile_financechoices: dataOptionSet.financeChoice,
             agile_financeothers: props.otherFinance,
-            isrevenuesystemcalculated: dataOptionSet.revenue,
+            isrevenuesystemcalculated: RevenueConstants[0].value,
             agile_interested: "1",
             quantity: props.quantity,
 
         })
         console.log("request body is", requestBody);
         if (patchMode) {
-            fetch(BASE_URL + OPPORTUNITY_ENDPOINT + "(" + bookingId + ")", {
-                method: 'PATCH',
-                headers: {
-                    'Authorization': 'Bearer ' + token,
-                    'Content-Type': 'application/json'
-                },
-                body: requestBody
-            }).then((response) => {
-                if (response.ok) {
-                    fetch("https://syakarhonda.api.crm5.dynamics.com/api/data/v9.1/opportunities(" + bookingId + ")", {
-                        method: 'PATCH',
-                        headers: {
-                            'Authorization': 'Bearer ' + token,
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({
-                            'pricelevelid@odata.bind': "/pricelevels(" + value + ")"
-                        })
-                    }).then((response) => {
-                        if (response.ok) {
-                            console.log("price level successfully added");
-                            setVisible(true);
-                        } else {
-                            if (response.status == 401) {
-                                showErrorToast("User session expired!")
-                                navigation.navigate(Routes.LOGIN_STACK);
+            if (bookingId !== undefined) {
+                fetch(BASE_URL + OPPORTUNITY_ENDPOINT + "(" + bookingId + ")", {
+                    method: 'PATCH',
+                    headers: {
+                        'Authorization': 'Bearer ' + token,
+                        'Content-Type': 'application/json'
+                    },
+                    body: requestBody
+                }).then((response) => {
+                    if (response.ok) {
+                        fetch("https://syakarhonda.api.crm5.dynamics.com/api/data/v9.1/opportunities(" + bookingId + ")", {
+                            method: 'PATCH',
+                            headers: {
+                                'Authorization': 'Bearer ' + token,
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                'pricelevelid@odata.bind': "/pricelevels(" + value + ")"
+                            })
+                        }).then((response) => {
+                            if (response.ok) {
+                                console.log("price level successfully added");
+                                setVisible(true);
+                            } else {
+                                if (response.status == 401) {
+                                    showErrorToast("User session expired!")
+                                    navigation.navigate(Routes.LOGIN_STACK);
+                                }
+                                response.json().then((body) => {
+                                    errorMessage = body.error.message;
+                                    showErrorToast(errorMessage);
+                                });
+
+
+
                             }
-                            response.json().then((body) => {
-                                errorMessage = body.error.message;
-                                showErrorToast(errorMessage);
-                            });
-
-
-
+                        })
+                    } else {
+                        if (response.status == 401) {
+                            showErrorToast("User session expired!")
+                            navigation.navigate(Routes.LOGIN_STACK);
                         }
-                    })
-                } else {
-                    if (response.status == 401) {
-                        showErrorToast("User session expired!")
-                        navigation.navigate(Routes.LOGIN_STACK);
+                        response.json().then((body) => {
+                            errorMessage = body.error.message;
+                            showErrorToast(errorMessage);
+                        });
+
+
+
                     }
-                    response.json().then((body) => {
-                        errorMessage = body.error.message;
-                        showErrorToast(errorMessage);
-                    });
-
-
-
-                }
-            })
+                })
+            }
         } else {
             console.log("here i ammmmmmmmmmmmmmmm");
             fetch(BASE_URL + OPPORTUNITY_ENDPOINT, {
@@ -910,6 +912,7 @@ const BookingForm = (props) => {
                 'productid@odata.bind': "/products(" + productId + ")",
                 'uomid@odata.bind': "/uoms(49370858-8eeb-ea11-a815-000d3a091a37)",
                 isproductoverridden: "true",
+                ispriceoverridden: "true",
                 priceperunit: parseInt(props.values.pricePerUnit),
                 quantity: parseInt(props.values.quantity),
                 volumediscountamount: parseInt(props.values.volumeDiscount),
@@ -922,6 +925,7 @@ const BookingForm = (props) => {
                 'productid@odata.bind': "/products(" + opportunityProductValue.productId + ")",
                 'uomid@odata.bind': "/uoms(49370858-8eeb-ea11-a815-000d3a091a37)",
                 isproductoverridden: "true",
+                ispriceoverridden: "true",
                 priceperunit: parseInt(props.values.pricePerUnit),
                 quantity: parseInt(props.values.quantity),
                 volumediscountamount: parseInt(props.values.volumeDiscount),
@@ -1251,7 +1255,7 @@ const BookingForm = (props) => {
                                         {displayOtherFinanceOption(formikProps)}
                                     </View>
 
-                                    <View style={{ flexDirection: 'column' }}>
+                                    {/* <View style={{ flexDirection: 'column' }}>
                                         <Text style={{ marginBottom: -16, marginTop: 12, fontFamily: Fonts.type.primary, fontSize: 14, lineHeight: 16 }}>Currency</Text>
                                         <View style={dropDownStyle}>
                                             <RNPickerSelect
@@ -1269,9 +1273,9 @@ const BookingForm = (props) => {
 
                                             />
                                         </View>
-                                    </View>
+                                    </View> */}
 
-                                    <View style={{ flexDirection: 'column', marginTop: 16, marginBottom: 16 }}>
+                                    {/* <View style={{ flexDirection: 'column', marginTop: 16, marginBottom: 16 }}>
                                         <Text style={{ marginBottom: -16, fontFamily: Fonts.type.primary, fontSize: 14, lineHeight: 16 }}>Revenue</Text>
                                         <View style={dropDownStyleFull}>
 
@@ -1289,7 +1293,7 @@ const BookingForm = (props) => {
 
                                             />
                                         </View>
-                                    </View>
+                                    </View> */}
 
                                     <View style={{ flexDirection: 'column', marginBottom: 16 }}>
                                         <Text style={{ marginBottom: -16, fontFamily: Fonts.type.primary, fontSize: 14, lineHeight: 16 }}>Price</Text>
@@ -1318,10 +1322,10 @@ const BookingForm = (props) => {
                                     <View style={{ marginBottom: 84 }}>
 
                                         <StyledInput
-                                         uneditable={true}
+                                            uneditable={true}
                                             label="Total Amount"
                                             passedValue={dataOptionSet.amount}
-                                            
+
                                             formikProps={formikProps}
                                             formikKey="totalAmount" />
 
@@ -1341,9 +1345,9 @@ const BookingForm = (props) => {
                                         overlayStyle={{ color: 'red', height: "75%", width: "85%" }}
                                         backdropStyle={{ color: "red" }}
                                         onBackdropPress={toggleOverlay}>
-                                        <Text style={{ alignSelf: 'center', fontSize: 16, fontFamily: Fonts.type.bold,paddingBottom:16 }}>Product Details</Text>
+                                        <Text style={{ alignSelf: 'center', fontSize: 16, fontFamily: Fonts.type.bold, paddingBottom: 16 }}>Product Details</Text>
                                         <ScrollView>
-                                            <View style={{ flexDirection: 'column', marginTop: 16 }}>
+                                            {/* <View style={{ flexDirection: 'column', marginTop: 16 }}>
                                                 <Text style={{ marginBottom: -16, fontFamily: Fonts.type.primary, fontSize: 14, lineHeight: 16 }}>Select Product</Text>
                                                 <View style={dropDownStyleFullModal}>
 
@@ -1366,7 +1370,8 @@ const BookingForm = (props) => {
                                                 </View>
 
 
-                                            </View>
+                                            </View> */}
+
                                             <View style={{ marginTop: 16 }}>
                                                 {showOptionalFields(formikProps)}
                                             </View>
@@ -1396,7 +1401,7 @@ const BookingForm = (props) => {
                                                 </View>
                                             </View> */}
 
-                                            <View style={{ flexDirection: 'column', marginTop: 16 }}>
+                                            {/* <View style={{ flexDirection: 'column', marginTop: 16 }}>
                                                 <Text style={{ marginBottom: -16, fontFamily: Fonts.type.primary, fontSize: 14, lineHeight: 16 }}>Price Overridden</Text>
                                                 <View style={dropDownStyleFullModal}>
 
@@ -1414,8 +1419,8 @@ const BookingForm = (props) => {
 
                                                     />
                                                 </View>
-                                            </View>
-                                            <View style={{ marginTop: 16 }}>
+                                            </View> */}
+                                            <View style={{ marginTop: 0 }}>
 
                                                 <StyledInput
                                                     uneditable={editMode ? true : false}

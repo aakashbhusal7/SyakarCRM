@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-community/async-storage';
 import React from 'react'
 import { View, StyleSheet, Text } from 'react-native'
-import { BASE_URL, OPPORTUNITY_ENDPOINT } from 'react-native-dotenv';
+import { BASE_URL, OPPORTUNITY_ENDPOINT, LEADS_ENDPOINT } from 'react-native-dotenv';
 import { Card, ListItem, Button, Icon, SearchBar } from 'react-native-elements'
 import { ScrollView } from 'react-native-gesture-handler';
 import AnimatedLoader from "react-native-animated-loader";
@@ -16,6 +16,8 @@ import Routes from '../Navigation/Routes';
 import { HeaderButton } from '../Components';
 import { AuthContext } from '../Components/context';
 import Fonts from '../Themes/Fonts';
+import { date } from 'yup';
+import { object } from 'prop-types';
 
 const BookingList = (props) => {
 
@@ -46,6 +48,10 @@ const BookingList = (props) => {
     const { signOut } = React.useContext(AuthContext);
     const [leadData, setLeadData] = React.useState([]);
     const [token, setToken] = React.useState();
+    const [leadList, setLeadList] = React.useState([{
+        "fullname": "",
+        "mobile": "",
+    }]);
     const [loading, setLoadindg] = React.useState(true);
     const [search, setSearch] = React.useState({
         allData: leadData,
@@ -89,11 +95,14 @@ const BookingList = (props) => {
         if (result.ok) {
             const data = await result.json();
             let tempList = [];
+
             data.value.filter(value => value.name !== null).map((object, key) =>
                 tempList.push({
                     "name": object.name,
                     "email": object.emailaddress,
                     "bookingId": object.opportunityid,
+                    "paymentMode":object.new_modeofpayment,
+                    "timeFrame":object.purchasetimeframe
 
                 })
             );
@@ -117,6 +126,48 @@ const BookingList = (props) => {
         }
     }
     console.log("lead data list is", leadData);
+
+    // async function fetchParentLead(leadId, token) {
+    //     let leadListTemp = [];
+    //     const res = await fetch(BASE_URL + LEADS_ENDPOINT + '(' + leadId + ')', {
+    //         method: 'GET',
+    //         headers: {
+    //             'Authorization': 'Bearer ' + token,
+    //             'Accept': 'application/json',
+    //             'Content-Type': 'application/json',
+    //         }
+
+    //     });
+    //     if (res.ok) {
+    //         const data = await res.json();
+    //         Object.values(data).map((object, key) => {
+    //             //console.log("object is",object);
+    //             leadListTemp.push({
+    //                 "fullname": object.fullname,
+    //                 "mobile": object.mobilephone
+    //             })
+    //         })
+    //         console.log("array list is",leadList);
+    //         setLeadList(leadListTemp);
+    //         //setMobileNumber(data.mobilephone);
+    //         //setFullName(data.fullname)
+    //         setLoadindg(false);
+    //     } else {
+    //         setLoadindg(false);
+    //         setLeadData(undefined);
+    //         if (res.status === 401) {
+    //             showErrorToast("User session expired!")
+    //             signOut();
+    //         } else {
+    //             const errorData = res.json();
+    //             const errorJson = errorData.error.message;
+    //             showErrorToast(errorJson);
+    //         }
+
+    //     }
+    //     //return leadList;
+    //     console.log("lead id is", leadId);
+    // }
 
     const updateSearch = (text) => {
         console.log("data of search is", leadData);

@@ -156,7 +156,7 @@ const FollowUpForm = (props) => {
     const [postUrl, setPostUrl] = React.useState(BASE_URL + LEADS_ENDPOINT);
     const [loading, setLoading] = useState(false);
 
-    const [time, setTime] = useState(new Date());
+    //const [time, setTime] = useState(new Date());
 
     const [dateShow, setDateShow] = useState(false);
     const [leadParentData, setLeadParentData] = React.useState({
@@ -386,12 +386,13 @@ const FollowUpForm = (props) => {
     }
 
     const [date, setDate] = useState(dataOptionSet.followUpDate);
+    const [time, setTime] = useState(dataOptionSet.followUpDate);
 
     const onFormSubmit = (values) => {
         let requestBody;
         let errorMessage = '';
         requestBody = JSON.stringify({
-            agile_followup: date,
+            agile_followup: time,
             agile_followuprequired: "1"
         });
         console.log("request body is", requestBody);
@@ -583,7 +584,7 @@ const FollowUpForm = (props) => {
 
                                     <Text style={styles.textLabelStyle}>Follow Up Date</Text>
 
-                                    <View style={{ marginTop: -16 }}>
+                                    <View style={{ marginTop: -16,marginBottom:8 }}>
                                         <DateComponent
                                             edit={!editMode ? true : false}
                                             date={dataOptionSet.followUpDate !== null ? dataOptionSet.followUpDate : new Date()}
@@ -593,7 +594,16 @@ const FollowUpForm = (props) => {
                                     </View>
 
 
+                                    <Text style={styles.textLabelStyle}>Follow Up Time</Text>
 
+                                    <View style={{ marginTop: -16 }}>
+                                        <TimeComponent
+                                            edit={!editMode ? true : false}
+                                            date={dataOptionSet.followUpDate !== null ? dataOptionSet.followUpDate : new Date()}
+                                            getTime={(data) => {
+                                                setTime(data)
+                                            }} />
+                                    </View>
 
                                     <View style={{
                                         marginTop: 8,

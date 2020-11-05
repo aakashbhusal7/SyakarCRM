@@ -14,6 +14,9 @@ import { BASE_URL, LEADS_ENDPOINT, PRODUCTS_ENDPOINT, QUALIFY_ENDPOINT, OPPORTUN
 import Toast from 'react-native-tiny-toast';
 import { AuthContext } from '../Components/context';
 import { showErrorToast, showSuccessToast } from '../Lib/Toast';
+import { PaymentModeConstants } from '../Utils/BookingFormConstants/PaymentModeConstants';
+import { PurchaseTimeConstants } from '../Utils/BookingFormConstants/PurchaseTimeConstants';
+
 
 const CardListComponent = (props) => {
     const navigation = useNavigation();
@@ -38,9 +41,42 @@ const CardListComponent = (props) => {
     if (props.flag === "lead") {
         url = BASE_URL + LEADS_ENDPOINT + '(' + props.data.leadId + ')';
     }
-    if(props.flag==="followUp"){
+    if (props.flag === "followUp") {
         url = BASE_URL + OPPORTUNITY_ENDPOINT + '(' + props.data.bookingId + ')';
     }
+
+    function showPaymentField() {
+        let element;
+        if (props.data.paymentMode !== null) {
+            element = (
+                <View>
+                    <Text style={[styles.subHeaderStyle, { marginTop: 4 }]}>
+                        {PaymentModeConstants[props.data.paymentMode].label}
+                    </Text>
+                </View>
+            )
+        } else {
+            element = null;
+        }
+        return element;
+    }
+
+    function showTimeFrameField() {
+        let element;
+        if (props.data.timeFrame !== null) {
+            element = (
+                <View>
+                    <Text style={[styles.subHeaderStyle, { marginTop: 4 }]}>
+                        {PurchaseTimeConstants[props.data.timeFrame].label}
+                    </Text>
+                </View>
+            )
+        } else {
+            element = null;
+        }
+        return element;
+    }
+
     const rightButtons = [
         <TouchableOpacity onPress={() => {
             fetch(url, {
@@ -103,6 +139,7 @@ const CardListComponent = (props) => {
 
     ];
 
+ 
 
     let element;
     if (props.flag === "booking") {
@@ -120,6 +157,11 @@ const CardListComponent = (props) => {
 
                             <Text style={styles.nameStyle}>{props.data.name}</Text>
                             <Text style={[styles.subHeaderStyle, { marginTop: 4 }]}>{props.data.email}</Text>
+
+                            {showPaymentField(props.data.paymentMode)}
+                            {showTimeFrameField(props.data.timeFrame)}
+
+
 
                         </TouchableOpacity>
                     </Card>
@@ -184,20 +226,26 @@ const CardListComponent = (props) => {
 
                             })
                         }}>
+                           
+                                <View style={{ flexDirection: 'column' }}>
 
-                            <Text style={styles.nameStyle}>{props.data.fullname}</Text>
-                            <Text style={[styles.subHeaderStyle, { marginTop: 4 }]}>{props.data.email}</Text>
-                            <View style={{ flexDirection: 'row', marginTop: 8, alignItems: 'center' }}>
-                                <IconPhone />
-                                <Text style={[styles.subHeaderStyle, { marginLeft: 8 }]}>{props.data.phone}</Text>
-                            </View>
+                                    <Text style={styles.nameStyle}>{props.data.fullname}</Text>
+                                    <Text style={[styles.subHeaderStyle, { marginTop: 4 }]}>{props.data.email}</Text>
+                                    <View style={{ flexDirection: 'row', marginTop: 8, alignItems: 'center' }}>
+                                        <IconPhone />
+                                        <Text style={[styles.subHeaderStyle, { marginLeft: 8 }]}>{props.data.phone}</Text>
+                                    </View>
+                                </View>
+
+                               
 
 
+                          
                         </TouchableOpacity>
 
                     </Card>
                 </Swipeable>
-            </View>
+            </View >
         );
     }
     return element;
