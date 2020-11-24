@@ -1,22 +1,19 @@
 import AsyncStorage from '@react-native-community/async-storage';
-import React from 'react'
-import { View, StyleSheet, Text } from 'react-native'
-import { BASE_URL, LEADS_ENDPOINT } from 'react-native-dotenv';
-import { Card, ListItem, Button, Icon, SearchBar } from 'react-native-elements'
-import { ScrollView } from 'react-native-gesture-handler';
+import React from 'react';
+import { StyleSheet, View } from 'react-native';
 import AnimatedLoader from "react-native-animated-loader";
-import CardListComponent from '../../Components/CardListComponent';
+import { SearchBar } from 'react-native-elements';
+import { ScrollView } from 'react-native-gesture-handler';
 import { FAB } from 'react-native-paper';
-import defaultTheme from '../../Themes';
-import { useNavigation, useRoute } from '@react-navigation/native';
-import Routes from '../../Navigation/Routes';
-import theme from '../../Themes/configs/default';
 import { HeaderButton } from '../../Components';
-import { ICON_TYPE } from '../../Icons';
-import HeaderText from '../../Components/HeaderText';
-import { showErrorToast } from '../../Lib/Toast';
+import CardListComponent from '../../Components/CardListComponent';
 import { AuthContext } from '../../Components/context';
-import { l } from 'i18n-js';
+import HeaderText from '../../Components/HeaderText';
+import { ICON_TYPE } from '../../Icons';
+import { showErrorToast } from '../../Lib/Toast';
+import Routes from '../../Navigation/Routes';
+import defaultTheme from '../../Themes';
+import theme from '../../Themes/configs/default';
 import Fonts from '../../Themes/Fonts';
 
 const Leads = ({ routes, navigation }) => {
@@ -71,11 +68,8 @@ const Leads = ({ routes, navigation }) => {
             const value = await AsyncStorage.getItem('@token_key');
             if (value !== null) {
                 setToken(value);
-
-                console.log("token is= " + value);
             }
         } catch (error) {
-            console.log("error is", error);
         }
     }
 
@@ -87,7 +81,6 @@ const Leads = ({ routes, navigation }) => {
                 _apiCall();
             }
         } catch (error) {
-            console.log("error is", error);
         }
     }
 
@@ -104,7 +97,6 @@ const Leads = ({ routes, navigation }) => {
                     }
 
                 });
-            console.log("result is", result.status);
             if (result.ok) {
                 const data = await result.json();
                 let tempList = [];
@@ -129,10 +121,7 @@ const Leads = ({ routes, navigation }) => {
                 if (result.status == 401) {
                     showErrorToast("User session expired!")
                     signOut();
-                    // navigation.reset({
-                    //     index: 0,
-                    //     routes: [{ name: ' LOGIN_SCREEN' }],
-                    // });
+                    
                 } else {
                     const errorData = result.json();
                     const errorJson = errorData.error.message;
@@ -145,7 +134,6 @@ const Leads = ({ routes, navigation }) => {
     console.log("lead data list filtered is", search.filteredData);
 
     const updateSearch = (text) => {
-        console.log("data of search is", leadData);
         setSearch({
             filteredData: leadData.filter(value =>
                 value.fullname.toLowerCase().includes(text.toLowerCase()),
@@ -188,18 +176,6 @@ const Leads = ({ routes, navigation }) => {
                                     return (
 
                                         <CardListComponent flag="lead" token={token} data={u} key={i} />
-
-
-
-                                        // <View key={i} >
-                                        //     <Card containerStyle={{ borderRadius: 10, opacity: 100, borderWidth: 0 }}>
-
-
-                                        //     <Text>{u.fullname}</Text>
-                                        //     <Text>{u.phone}</Text>
-
-                                        //     </Card>
-                                        // </View>
                                     );
                                 }
                             })

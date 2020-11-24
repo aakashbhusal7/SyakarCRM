@@ -3,12 +3,14 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import { Formik } from 'formik';
 import React, { useState } from 'react';
 import { Dimensions, SafeAreaView, ScrollView, StatusBar, StyleSheet, Text, TextInput, View } from 'react-native';
+import AnimatedLoader from "react-native-animated-loader";
 import { BASE_URL, CURRENCY_ENDPOINT, OPPORTUNITYPRODUCT_ENDPOINT, OPPORTUNITY_ENDPOINT, PRICE_ENDPOINT, PRODUCTS_ENDPOINT } from 'react-native-dotenv';
 import { ButtonGroup, Overlay } from 'react-native-elements';
+import { TouchableOpacity } from 'react-native-gesture-handler';
 import RNPickerSelect from 'react-native-picker-select';
-import { ProgressStep, ProgressSteps } from 'react-native-progress-steps';
 import * as yup from 'yup';
 import { ButtonX, HeaderButton } from '../../Components';
+import { AuthContext } from '../../Components/context';
 import HeaderText from '../../Components/HeaderText';
 import useTranslation from '../../i18n';
 import { IconX, ICON_TYPE } from '../../Icons';
@@ -21,13 +23,6 @@ import { FinanceChoiceConstants } from '../../Utils/BookingFormConstants/Finance
 import { PaymentModeConstants } from '../../Utils/BookingFormConstants/PaymentModeConstants';
 import { PurchaseTimeConstants } from '../../Utils/BookingFormConstants/PurchaseTimeConstants';
 import { RevenueConstants } from '../../Utils/BookingFormConstants/RevenueConstants';
-import { FollowUpConstants } from '../../Utils/OpportunityConstants/FollowUpConstants';
-import { InterestConstants } from '../../Utils/OpportunityConstants/InterestConstants';
-import { OverrideenConstants } from '../../Utils/ProductConstants./OverriddenConstants';
-import { PriceOverrideConstants } from '../../Utils/ProductConstants./PriceOverrideConstants';
-import AnimatedLoader from "react-native-animated-loader";
-import { TouchableOpacity } from 'react-native-gesture-handler';
-import { AuthContext } from '../../Components/context';
 
 var width = Dimensions.get('window').width;
 
@@ -201,27 +196,6 @@ const StyledInput = ({ label, formikProps, uneditable, passedValue, formikKey, t
 };
 
 
-
-const validationSchema = yup.object().shape({
-    firstName: yup
-        .string()
-        .label('FirstName')
-        .min(2)
-        .required('* First name is required'),
-    lastName: yup
-        .string()
-        .label('Last Name')
-        .min(2)
-        .required('* Last name is required'),
-    phoneNumber: yup
-        .number()
-        .label('Phone')
-        .min(2)
-        .required('* Phone no is required'),
-
-});
-
-
 const BookingForm = (props) => {
 
     const { signOut } = React.useContext(AuthContext);
@@ -295,8 +269,6 @@ const BookingForm = (props) => {
             opportunityId = route.params.bookingId;
         }
 
-    } else {
-        console.log("here");
     }
 
 
@@ -304,8 +276,6 @@ const BookingForm = (props) => {
         const _toggleDrawer = () => {
             navigation.toggleDrawer();
         };
-
-        console.log('use effect home');
 
         navigation.setOptions({
             headerLeft: () => {
@@ -346,17 +316,6 @@ const BookingForm = (props) => {
             if (value !== null) {
                 setToken(value);
                 fetchOpportunityStataus(value)
-                // if (reload == false) {
-                //     console.log("here");
-                //     console.log('opportunity status is', opportunityStatus);
-
-                //     if (opportunityStatus == 1) {
-                //         console.log("here inside");
-                //         setLoading(true);
-                //         fetchExistingBooking(value)
-                //     }
-
-                // }
                 fetchCurrencies(value);
                 fetchPriceList(value);
                 fetchProducts(value);
@@ -365,10 +324,8 @@ const BookingForm = (props) => {
                     fetchUomId(value, productId);
                     fetchUnit(value, productId);
                 }
-                console.log("tokenn is= " + value);
             }
         } catch (error) {
-            console.log("error is", error);
         }
     }
 
@@ -387,16 +344,11 @@ const BookingForm = (props) => {
             const data = await res.json();
             setOpportunityStatus(data.agile_interested);
             if (reload == false) {
-
-                console.log('opportunity status is', opportunityStatus);
-
                 if (data.agile_interested == 1) {
-                    console.log("here inside");
                     //setLoading(true);
                     fetchExistingBooking(token)
                 } else {
                     setLoading(false);
-                    console.log("entered here");
 
                 }
 
@@ -408,7 +360,6 @@ const BookingForm = (props) => {
     }
 
     async function fetchProducts(token) {
-        console.log("token is", token);
         const res = await fetch(BASE_URL + PRODUCTS_ENDPOINT, {
             method: 'GET',
             headers: {
@@ -438,8 +389,8 @@ const BookingForm = (props) => {
             }
         }
 
-        console.log("product list is", modelData);
     }
+
     async function fetchCurrencies(token) {
         console.log("token is", token);
         const res = await fetch(BASE_URL + CURRENCY_ENDPOINT, {
@@ -504,7 +455,6 @@ const BookingForm = (props) => {
             }
         }
 
-        console.log("price list is", priceData);
     }
 
     async function fetchProductName(token, value) {
@@ -530,7 +480,6 @@ const BookingForm = (props) => {
                 showErrorToast(errorMessage);
             }
         }
-        console.log("passed model name is", modelName);
     }
 
     function fetchExistingBooking(token) {
@@ -559,7 +508,6 @@ const BookingForm = (props) => {
 
 
                             })
-                            console.log("total amount is", resJson.totalamount);
                             setEditMode(true);
                             setLoading(false);
 
@@ -572,9 +520,7 @@ const BookingForm = (props) => {
                     res.json().then((body) => {
                         errorMessage = body.error.message;
                         showErrorToast(errorMessage)
-                        console.log("error message is", errorMessage);
                     });
-                    console.log("error in edit lead form");
                 }
             })
         } else {
@@ -585,8 +531,6 @@ const BookingForm = (props) => {
 
 
     async function fetchUomId(token, productId) {
-        console.log("token is", token);
-        console.log("prodcut id value in the functions is", productId);
         const res = await fetch("https://syakarhonda.api.crm5.dynamics.com/api/data/v9.1/products(" + productId + ")", {
             method: 'GET',
             headers: {
@@ -598,7 +542,6 @@ const BookingForm = (props) => {
         })
         if (res.ok) {
             const data = await res.json();
-            console.log("result is", res.status);
             setUomId(data._defaultuomscheduleid_value);
         } else {
             if (res.status == 401) {
@@ -615,8 +558,6 @@ const BookingForm = (props) => {
 
 
     async function fetchUnit(token) {
-        console.log("token is", token);
-        console.log("prodcut id value in the functions is", productId);
         const res = await fetch("https://syakarhonda.api.crm5.dynamics.com/api/data/v9.1/uoms?$filter=_uomscheduleid_value eq " + uomId, {
             method: 'GET',
             headers: {
@@ -628,7 +569,6 @@ const BookingForm = (props) => {
         })
         if (res.ok) {
             const data = await res.json();
-            console.log("result is", res.status);
             data.value.map((object, key) => setUnitData(unitData => [
                 ...unitData,
                 {
@@ -640,15 +580,7 @@ const BookingForm = (props) => {
             if (res.status == 401) {
                 signOut();
             }
-            else {
-                // let resJson = res.json()
-                // let errorMessage = resJson.body.error.message
-                //showErrorToast("error");
-            }
         }
-
-
-        console.log("unit list is", unitData);
     }
 
 
@@ -671,7 +603,6 @@ const BookingForm = (props) => {
             totalamount: parseInt(priceAmountValue),
 
         })
-        console.log("final request body is", requestBody);
         fetch(BASE_URL + OPPORTUNITY_ENDPOINT + '(' + opportunityId + ')', {
             method: 'PATCH',
             headers: {
@@ -682,9 +613,8 @@ const BookingForm = (props) => {
         }).then((response) => {
             if (response.ok) {
                 setLoading(false);
-                !patchMode ? showSuccessToast("Successfully setup booking form") : showSuccessToast("Successfully updated booking form");
-
-                // navigation.navigate(Routes.BOOKING_LIST_SCREEN)
+                !patchMode ? showSuccessToast("Successfully setup booking form") :
+                    showSuccessToast("Successfully updated booking form");
                 navigation.reset({
                     index: 0,
                     routes: [{ name: 'BOOKING_LIST' }]
@@ -777,8 +707,6 @@ const BookingForm = (props) => {
     }
 
     const preBookingPost = (value, props) => {
-        console.log("price level value is", value);
-        console.log("other props are", props);
         let errorMessage = '';
         let requestBody = JSON.stringify({
             'transactioncurrencyid@odata.bind': "/transactioncurrencies(d8837250-8deb-ea11-a815-000d3a091a37)",
@@ -793,7 +721,6 @@ const BookingForm = (props) => {
             quantity: props.quantity,
 
         })
-        console.log("request body is", requestBody);
         if (patchMode) {
             if (bookingId !== undefined) {
                 fetch(BASE_URL + OPPORTUNITY_ENDPOINT + "(" + bookingId + ")", {
@@ -848,7 +775,6 @@ const BookingForm = (props) => {
                 })
             }
         } else {
-            console.log("here i ammmmmmmmmmmmmmmm");
             fetch(BASE_URL + OPPORTUNITY_ENDPOINT, {
                 method: 'POST',
                 headers: {
@@ -905,7 +831,6 @@ const BookingForm = (props) => {
     const submitOpportunityProduct = (props) => {
         let requestBody;
         let errorMessage = '';
-        console.log("passed props in product form is", props);
         if (opportunityProductValue.productId == undefined) {
             requestBody = JSON.stringify({
                 'opportunityid@odata.bind': "/opportunities(" + opportunityId + ")",
@@ -932,8 +857,6 @@ const BookingForm = (props) => {
                 baseamount: parseInt(props.values.amount)
             })
         }
-        console.log("product selected is", opportunityProductValue.productId);
-        console.log("final request body is", requestBody);
 
         fetch(BASE_URL + OPPORTUNITYPRODUCT_ENDPOINT, {
             method: 'POST',
@@ -952,7 +875,6 @@ const BookingForm = (props) => {
                 }).then((response) => {
                     if (response.ok) {
                         response.json().then((responseJson) => {
-                            console.log("total amount is", responseJson.totalamount);
                             setPriceAmountValue(responseJson.totalamount + '');
                         })
                     } else {
@@ -1087,12 +1009,8 @@ const BookingForm = (props) => {
         })
 
         setLoading(false);
-
         setVisible(true)
-        console.log("opportunity product values are", opportunityProductValue);
-        //setVisible(true);
     }
-    console.log("opportunity product values are", opportunityProductValue);
 
     async function fetchUomName(id) {
         console.log("uomid is", id);
@@ -1107,8 +1025,6 @@ const BookingForm = (props) => {
         })
         if (res.ok) {
             const data = await res.json();
-            console.log("uom data is", data);
-
             setUomName(data.name)
         } else {
             setUomName(undefined);
@@ -1175,10 +1091,7 @@ const BookingForm = (props) => {
 
 
                             }}
-                            onSubmit={onFormSubmit}
-
-
-                        >
+                            onSubmit={onFormSubmit} >
                             {formikProps => (
 
                                 <SafeAreaView style={{ marginLeft: 16, marginTop: 13, flex: 1 }}>
@@ -1255,46 +1168,6 @@ const BookingForm = (props) => {
                                         {displayOtherFinanceOption(formikProps)}
                                     </View>
 
-                                    {/* <View style={{ flexDirection: 'column' }}>
-                                        <Text style={{ marginBottom: -16, marginTop: 12, fontFamily: Fonts.type.primary, fontSize: 14, lineHeight: 16 }}>Currency</Text>
-                                        <View style={dropDownStyle}>
-                                            <RNPickerSelect
-                                                disabled={editMode ? true : false}
-                                                items={currencyData}
-                                                onValueChange={(value, key) => {
-                                                    setDataOptionSet({
-                                                        ...dataOptionSet, currency: value
-                                                    })
-                                                }
-                                                }
-                                                style={pickerSelectStyles}
-                                                value={dataOptionSet.currency}
-                                                useNativeAndroidPickerStyle={false}
-
-                                            />
-                                        </View>
-                                    </View> */}
-
-                                    {/* <View style={{ flexDirection: 'column', marginTop: 16, marginBottom: 16 }}>
-                                        <Text style={{ marginBottom: -16, fontFamily: Fonts.type.primary, fontSize: 14, lineHeight: 16 }}>Revenue</Text>
-                                        <View style={dropDownStyleFull}>
-
-                                            <RNPickerSelect
-                                                disabled={editMode ? true : false}
-                                                items={RevenueConstants}
-                                                onValueChange={value => {
-                                                    setDataOptionSet({
-                                                        ...dataOptionSet, revenue: value,
-                                                    });
-                                                }}
-                                                style={pickerSelectStyles}
-                                                value={dataOptionSet.revenue}
-                                                useNativeAndroidPickerStyle={false}
-
-                                            />
-                                        </View>
-                                    </View> */}
-
                                     <View style={{ flexDirection: 'column', marginBottom: 16 }}>
                                         <Text style={{ marginBottom: -16, fontFamily: Fonts.type.primary, fontSize: 14, lineHeight: 16 }}>Price</Text>
                                         <View style={dropDownStyleFull}>
@@ -1305,7 +1178,6 @@ const BookingForm = (props) => {
                                                     setDataOptionSet({
                                                         ...dataOptionSet, priceList: value
                                                     })
-                                                    console.log("edit mode is", editMode);
                                                     preBookingPost(value, formikProps)
                                                 }
 
@@ -1333,9 +1205,7 @@ const BookingForm = (props) => {
 
                                             {renderProductButton()}
 
-
                                         </View>
-
 
                                     </View>
 
@@ -1347,79 +1217,11 @@ const BookingForm = (props) => {
                                         onBackdropPress={toggleOverlay}>
                                         <Text style={{ alignSelf: 'center', fontSize: 16, fontFamily: Fonts.type.bold, paddingBottom: 16 }}>Product Details</Text>
                                         <ScrollView>
-                                            {/* <View style={{ flexDirection: 'column', marginTop: 16 }}>
-                                                <Text style={{ marginBottom: -16, fontFamily: Fonts.type.primary, fontSize: 14, lineHeight: 16 }}>Select Product</Text>
-                                                <View style={dropDownStyleFullModal}>
-
-                                                    <RNPickerSelect
-                                                        disabled={editMode ? true : false}
-                                                        items={OverrideenConstants}
-                                                        onValueChange={value => {
-                                                            setOpportunityProductValue({
-                                                                ...opportunityProductValue, isProductOverride: value,
-                                                            });
-                                                        }}
-                                                        style={pickerSelectStyles}
-                                                        value={opportunityProductValue.isProductOverride}
-                                                        useNativeAndroidPickerStyle={false}
-
-
-                                                    />
-
-
-                                                </View>
-
-
-                                            </View> */}
 
                                             <View style={{ marginTop: 16 }}>
                                                 {showOptionalFields(formikProps)}
                                             </View>
 
-                                            {/* <View style={{ flexDirection: 'column' }}>
-                                                <Text style={{ marginBottom: -16, fontFamily: Fonts.type.primary, fontSize: 14, lineHeight: 16 }}>Unit</Text>
-                                                <View style={dropDownStyleFullModal}>
-
-                                                    <RNPickerSelect
-                                                        disabled={editMode ? true : false}
-                                                        items={unitData}
-                                                        onValueChange={(value, key) => {
-                                                            setOpportunityProductValue({
-                                                                ...opportunityProductValue, unitid: value
-                                                            })
-                                                        }
-                                                        }
-                                                        style={pickerSelectStyles}
-                                                        value={opportunityProductValue.uomName}
-                                                        useNativeAndroidPickerStyle={false}
-
-                                                    />
-
-                                                    <Text>{uomName}</Text>
-
-
-                                                </View>
-                                            </View> */}
-
-                                            {/* <View style={{ flexDirection: 'column', marginTop: 16 }}>
-                                                <Text style={{ marginBottom: -16, fontFamily: Fonts.type.primary, fontSize: 14, lineHeight: 16 }}>Price Overridden</Text>
-                                                <View style={dropDownStyleFullModal}>
-
-                                                    <RNPickerSelect
-                                                        disabled={editMode ? true : false}
-                                                        items={PriceOverrideConstants}
-                                                        onValueChange={value => {
-                                                            setOpportunityProductValue({
-                                                                ...opportunityProductValue, isPriceOverride: value,
-                                                            });
-                                                        }}
-                                                        style={pickerSelectStyles}
-                                                        value={opportunityProductValue.isPriceOverride}
-                                                        useNativeAndroidPickerStyle={false}
-
-                                                    />
-                                                </View>
-                                            </View> */}
                                             <View style={{ marginTop: 0 }}>
 
                                                 <StyledInput
@@ -1475,25 +1277,6 @@ const BookingForm = (props) => {
 
                                     </Overlay>
 
-                                    {/* <View style={{ flexDirection: 'column' }}>
-                                    <Text style={{ marginBottom: -16 }}>Total Amount</Text>
-                                    <View style={dropDownStyle}>
-                                        <RNPickerSelect
-                                            items={colorDataItems}
-                                            onValueChange={(value) =>
-                                                setColorsListData(value)
-                                            }
-                                            style={pickerSelectStyles}
-                                            value={colorsListData}
-                                            useNativeAndroidPickerStyle={false}
-
-                                        />
-                                    </View>
-                                </View> */}
-
-
-
-
 
                                     <View style={{
                                         position: 'absolute',
@@ -1514,12 +1297,9 @@ const BookingForm = (props) => {
                                             label={t('Save')}
                                         />
 
-
-
                                     </View>
 
                                 </SafeAreaView>
-
 
                             )}
                         </Formik>

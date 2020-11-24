@@ -1,30 +1,28 @@
 /* eslint-disable react-native/no-inline-styles */
+import AsyncStorage from '@react-native-community/async-storage';
+import { useNavigation } from '@react-navigation/native';
+import { useStoreActions, useStoreState } from 'easy-peasy';
 import React, { useRef } from 'react';
-import { Text, Keyboard, Image, StyleSheet } from 'react-native';
-import { useStoreState, useStoreActions } from 'easy-peasy';
-import { STATUS } from '../../Constants';
-import LoadingActionContainer from '../../Components/LoadingActionContainer';
-import {
-  Section,
-  Container,
-  PasswordInputX,
-  InputX,
-  ButtonX,
-} from '../../Components';
-
-import useAppTheme from '../../Themes/Context';
-import useAuth from '../../Services/Auth';
-import { showInfoToast } from '../../Lib/Toast';
-import BottomPanel from '../../Components/Panel';
-import useTranslation from '../../i18n';
-import Fonts from '../../Themes/Fonts';
+import { Image, Keyboard, StyleSheet, Text } from 'react-native';
 import { View } from 'react-native-animatable';
-import { ThemeProvider, useNavigation } from '@react-navigation/native';
+import { BASE_URL, CONTACTS_ENDPOINT, TOKEN_URL } from 'react-native-dotenv';
+import {
+  ButtonX, Container,
+
+  InputX, Section
+} from '../../Components';
+import LoadingActionContainer from '../../Components/LoadingActionContainer';
+import BottomPanel from '../../Components/Panel';
+import { STATUS } from '../../Constants';
+import useTranslation from '../../i18n';
+import { showInfoToast } from '../../Lib/Toast';
+import Routes from '../../Navigation/Routes';
+import useAuth from '../../Services/Auth';
 import defaultTheme from '../../Themes';
 import colors from '../../Themes/Colors';
-import { BASE_URL, TOKEN_URL, CONTACTS_ENDPOINT } from 'react-native-dotenv';
-import AsyncStorage from '@react-native-community/async-storage';
-import Routes from '../../Navigation/Routes';
+import useAppTheme from '../../Themes/Context';
+import Fonts from '../../Themes/Fonts';
+
 
 export default () => {
   const onChange = useStoreActions(actions => actions.login.onLoginInputChange);
@@ -77,7 +75,6 @@ export default () => {
 
   const signup = (username, phoneNumber) => {
     let credentials = [username.username, username.phoneNumber];
-    console.log("credentials are ", credentials);
     fetch(TOKEN_URL, {
       method: 'POST',
       headers: {
@@ -87,7 +84,6 @@ export default () => {
     }).then((response) => response.json())
       .then((responseData) => {
         { storeToken(responseData.access_token) }
-        console.log("Response data is" + responseData.access_token);
         { stepToSignup(responseData.access_token, credentials) }
       })
   }
@@ -118,7 +114,6 @@ export default () => {
       })
     }).then((response) => {
       if (response.status === 204) {
-        console.log("response url is", response.headers.map.location);
         if (response.headers.map.location !== undefined) {
           navigation.navigate(Routes.PASSWORD_SETUP_SCREEN, { username: username, phoneNumber: phoneNumber, url: response.headers.map.location })
         }

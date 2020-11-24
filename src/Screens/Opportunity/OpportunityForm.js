@@ -1,29 +1,25 @@
+import AsyncStorage from '@react-native-community/async-storage';
+import { useNavigation, useRoute } from '@react-navigation/native';
+import { Formik } from 'formik';
 import React, { useState } from 'react';
-import { Dimensions, TextInput, StatusBar, SafeAreaView, View, Text, StyleSheet, ScrollView } from 'react-native';
+import { Dimensions, SafeAreaView, ScrollView, StatusBar, StyleSheet, Text, TextInput, View } from 'react-native';
+import { RadioButton } from 'react-native-paper';
+import { ProgressStep, ProgressSteps } from 'react-native-progress-steps';
+import * as yup from 'yup';
 import { ButtonX, HeaderButton } from '../../Components';
 import HeaderText from '../../Components/HeaderText';
-import { RadioButton } from 'react-native-paper';
-import * as yup from 'yup';
 import useTranslation from '../../i18n';
+import { ICON_TYPE } from '../../Icons';
 import Routes from '../../Navigation/Routes';
 import defaultTheme from '../../Themes';
-import { useNavigation, useRoute } from '@react-navigation/native';
-import AsyncStorage from '@react-native-community/async-storage';
-import { Formik } from 'formik';
+import theme from '../../Themes/configs/default';
+import Fonts from '../../Themes/Fonts';
 import { FollowUpConstants } from '../../Utils/OpportunityConstants/FollowUpConstants';
 import { InterestConstants } from '../../Utils/OpportunityConstants/InterestConstants';
-import colors from '../../Themes/Colors';
-import { navigationRef } from '../../Navigation';
-import theme from '../../Themes/configs/default';
-import { ICON_TYPE } from '../../Icons';
-import { TouchableOpacity } from 'react-native-gesture-handler';
-import { ProgressSteps, ProgressStep } from 'react-native-progress-steps';
-import Fonts from '../../Themes/Fonts';
 
 var width = Dimensions.get('window').width;
 
 const StyledInput = ({ label, formikProps, uneditable, passedValue, formikKey, ...rest }) => {
-    console.log("passed value is", passedValue);
     const inputStyles = {
         height: 45,
         width: width / 1.115,
@@ -84,13 +80,7 @@ const StyledInput = ({ label, formikProps, uneditable, passedValue, formikKey, .
         inputStyles.width = width / 2.25
         inputStyles.marginLeft = 4
     }
-    if (formikKey == 'countryCode') {
-        inputStyles.width = width / 3
-    }
-
-    if (formikKey == 'dob') {
-        inputStyles.width = width / 1.25
-    }
+   
     if (formikKey == 'icon') {
         inputStyles.marginLeft = -9
         inputStyles.width = width / 8
@@ -124,32 +114,9 @@ const StyledInput = ({ label, formikProps, uneditable, passedValue, formikKey, .
 };
 
 
-
-const validationSchema = yup.object().shape({
-    firstName: yup
-        .string()
-        .label('FirstName')
-        .min(2)
-        .required('* First name is required'),
-    lastName: yup
-        .string()
-        .label('Last Name')
-        .min(2)
-        .required('* Last name is required'),
-    phoneNumber: yup
-        .number()
-        .label('Phone')
-        .min(2)
-        .required('* Phone no is required'),
-
-});
-
-
 const OpportunityForm = (props) => {
 
-    //const { firstName , lastName,model,color} = route.params;
     const navigation = useNavigation();
-    console.log("passed params from lead is", props);
     const [token, setToken] = useState();
     const [checked, setChecked] = useState(FollowUpConstants[1].value);
     const [interest, setInterest] = useState(InterestConstants[0].value);
@@ -157,7 +124,6 @@ const OpportunityForm = (props) => {
     const route = useRoute();
     const [startDate, setStartDate] = useState(new Date().toString().substring(4, 16));
 
-    console.log("props passed are", props);
 
     let firstName = '';
     let lastName = '';
@@ -176,17 +142,13 @@ const OpportunityForm = (props) => {
         email = route.params.email;
         productId=route.params.productId;
         opportunityId=route.params.opportunityId;
-        console.log("OPPORTUNITY ID IS",opportunityId);
-    } else {
-        console.log('reached here');
-    }
+    } 
 
     React.useEffect(() => {
         const _toggleDrawer = () => {
             navigation.toggleDrawer();
         };
 
-        console.log('use effect home');
 
         navigation.setOptions({
             headerLeft: () => {
@@ -226,15 +188,7 @@ const OpportunityForm = (props) => {
         if (checked == 1) {
             element = (
                 <View>
-                    {/* <DatePickerComponent  getData={(data) => { setStartDate(data) }} />
-                    <TouchableOpacity onPress={<DatePickerComponent/>}>
-                    <StyledInput
-                        passedValue={startDate}
-                        label="Follow Up Date"
-                        formikProps={props}
-                        formikKey="followUpDate"
-                    />
-                    </TouchableOpacity> */}
+                   
                     <StyledInput
                         label="Follow Up Date"
                         formikProps={props}
@@ -259,12 +213,10 @@ const OpportunityForm = (props) => {
     const onFormSubmit = (values) => {
 
         if (interest == 2) {
-            console.log('here');
             navigation.navigate(Routes.TEST_RIDE_FORM_SCREEN, { "flag": 2, email: email, subject: modelName });
         } else if (interest == 1) {
             navigation.navigate(Routes.BOOKING_FORM_SCREEN,{"flag":1,productId:productId,opportunityId:opportunityId,productName:modelName});
         }
-        console.log("here");
 
     }
 

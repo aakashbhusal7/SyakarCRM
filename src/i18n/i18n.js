@@ -12,7 +12,7 @@ I18n.locale = LOCALES.ENGLISH.name;
 
 I18n.translations = {
 	en: require("./languages/english.json"),
-	hi: require("./languages/hindi.json")
+	hi: require("./languages/nepali.json")
 };
 
 // let languageCode = I18n.locale.substr(0, 2)

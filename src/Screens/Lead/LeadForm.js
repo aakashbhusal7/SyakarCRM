@@ -3,12 +3,17 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import { Formik } from 'formik';
 import React, { useState } from 'react';
 import { Dimensions, SafeAreaView, StatusBar, StyleSheet, Text, TextInput, View } from 'react-native';
+import AnimatedLoader from "react-native-animated-loader";
 import { BASE_URL, LEADS_ENDPOINT, PRODUCTS_ENDPOINT, QUALIFY_ENDPOINT } from 'react-native-dotenv';
+import { ButtonGroup } from 'react-native-elements';
 import { ScrollView, TouchableOpacity } from 'react-native-gesture-handler';
+import MultiSelect from 'react-native-multiple-select';
 import { RadioButton } from 'react-native-paper';
+import call from 'react-native-phone-call';
 import RNPickerSelect from 'react-native-picker-select';
 import * as yup from 'yup';
 import { ButtonX, HeaderButton } from '../../Components';
+import { AuthContext } from '../../Components/context';
 import HeaderText from '../../Components/HeaderText';
 import useTranslation from '../../i18n';
 import { IconX, ICON_TYPE } from '../../Icons';
@@ -27,13 +32,6 @@ import { LeadSourceConstants } from '../../Utils/LeadFormConstants/LeadSourceCon
 import { RejectReasonConstants } from '../../Utils/LeadFormConstants/RejectReasonConstants';
 import { OccupationConstants } from '../../Utils/OccupationConstants';
 import { RidingConstants } from '../../Utils/RidingConstants';
-import { ProgressSteps, ProgressStep } from 'react-native-progress-steps';
-import AnimatedLoader from "react-native-animated-loader";
-import { AuthContext } from '../../Components/context';
-import { set } from 'lodash';
-import { ButtonGroup } from 'react-native-elements';
-import MultiSelect from 'react-native-multiple-select';
-import call from 'react-native-phone-call'
 
 
 var dataList = [];
@@ -66,7 +64,7 @@ const dropDownStyleColor = {
     backgroundColor: '#ffffff',
     borderWidth: 1,
     borderColor: '#EDEDED',
-    paddingLeft:8,
+    paddingLeft: 8,
     borderRadius: 3,
     marginRight: 8,
     marginTop: 20,
@@ -222,7 +220,8 @@ const validationSchema = yup.object().shape({
     phoneNumber: yup
         .number("Value must be number")
         .label('Phone')
-        .min(2)
+        .min(1111111111, "Invalid phone number")
+        .max(10000000000, "Invalid phone number")
         .required('* Phone no is required')
         .typeError('numeric value is required'),
     emailAddress: yup
@@ -245,11 +244,11 @@ const LeadForm = (props) => {
     const [colorData, setColorData] = React.useState([]);
     const [editMode, setEditMode] = React.useState(false);
     const [selectedItems, setSelectedItems] = React.useState({
-        selectedItems: [],
+        selectedItems: []
 
     })
     const [selectedItemsChosen, setSelectedItemsChosen] = React.useState({
-        selectedItemsChosen: [],
+        selectedItemsChosen: []
 
     })
     const [dataOptionSet, setDataOptionSet] = React.useState({
@@ -302,8 +301,6 @@ const LeadForm = (props) => {
             navigation.toggleDrawer();
         };
 
-        console.log('use effect home');
-
         navigation.setOptions({
             headerLeft: () => {
                 return (
@@ -326,7 +323,6 @@ const LeadForm = (props) => {
     if (route.params !== undefined) {
         if (route.params.flag == "edit") {
             leadId = route.params.leadId;
-            console.log("passed lead id is", route.params.leadId);
         }
     }
 
@@ -368,11 +364,9 @@ const LeadForm = (props) => {
                     fetchExistingLead(value)
                 }
                 fetchProducts(value);
-                console.log("token is= " + value);
 
             }
         } catch (error) {
-            console.log("error is", error);
         }
     }
 
@@ -383,13 +377,10 @@ const LeadForm = (props) => {
                 setContactKey(contactId);
             }
         } catch (error) {
-            console.log("error is", error);
         }
     }
 
     function fetchExistingLead(token) {
-        console.log("reached here in existing lead form");
-        console.log("lead id is", leadId);
         let errorMessage = '';
         if (leadId !== '') {
             setLoading(true);
@@ -400,7 +391,6 @@ const LeadForm = (props) => {
                     'Content-Type': 'application/json',
                 }
             }).then((res) => {
-                console.log("res code is", res.status);
                 if (res.ok) {
                     res.json().then(
                         (resJson) => {
@@ -433,11 +423,15 @@ const LeadForm = (props) => {
                                 street: resJson.address1_name !== null ? "" + resJson.address1_name : resJson.address1_name,
 
                             })
+
+                            var selectedItemChoosenString = JSON.stringify(resJson.agile_reasontochoose.toString());//Jsonresult
+                            var eventstring = new String();
+                            eventstring = selectedItemChoosenString.toString().replace(/"/g, "");
                             setSelectedItemsChosen({
-                                selectedItemsChosen: resJson.agile_reasontochoose,
+                                selectedItemsChosen: eventstring.split(',').map(parseFloat)
                             })
                             setSelectedItems({
-                                selectedItems: resJson.agile_reasonforleaving,
+                                selectedItems: resJson.agile_reasonforleaving
                             })
                             setPassingProp({
                                 firstName: resJson.firstname,
@@ -449,25 +443,18 @@ const LeadForm = (props) => {
                                 opportunityId: resJson._qualifyingopportunityid_value
 
                             })
-                            console.log("data option set is", dataOptionSet);
                             setEditMode(true);
                             setLoading(false);
                         })
                 } else {
-                    console.log("NOT OKAYYYYYYYYYYYYYYYYYYYYy");
                     if (res.status == 401) {
                         signOut();
                     }
 
                     res.json().then((body) => {
                         errorMessage = body.error.message;
-                        console.log("error message is", errorMessage);
                     });
-                    console.log("error in edit lead form");
                 }
-
-
-
             }
             )
         }
@@ -475,7 +462,6 @@ const LeadForm = (props) => {
     }
 
     async function fetchProducts(token) {
-        console.log("token is", token);
         const res = await fetch(BASE_URL + PRODUCTS_ENDPOINT, {
             method: 'GET',
             headers: {
@@ -497,10 +483,8 @@ const LeadForm = (props) => {
         }
 
     }
-    console.log("newest model data set is", modelData);
 
     async function fetchColorData() {
-        console.log("product list before fetch", productsListData);
 
         const res = await fetch("https://syakarhonda.api.crm5.dynamics.com/api/data/v9.1/agile_colorses?$filter=_agile_producmodelname_value eq " + dataOptionSet.model
 
@@ -520,8 +504,6 @@ const LeadForm = (props) => {
         } else {
             setFlag(false);
         }
-        console.log("data is", data);
-
         data.value.map((object, key) => setColorData(colorData => [
             ...colorData,
             {
@@ -530,14 +512,7 @@ const LeadForm = (props) => {
             },
         ]));
 
-        console.log("lenght of color data items is", colorData.length);
-
-
     }
-    console.log("newest color data set is", colorData);
-
-    console.log("name of producst is", productsListData);
-    console.log("data option set is", dataOptionSet);
 
     const [passingProp, setPassingProp] = React.useState({
         "firstName": dataOptionSet.firstName,
@@ -550,7 +525,9 @@ const LeadForm = (props) => {
     });
 
     const onSelectedItemsChange = selectedItems => {
-        setSelectedItems({ selectedItems });
+        if (!editMode) {
+            setSelectedItems({ selectedItems });
+        }
     }
 
     const onSelectedItemsChosenChange = selectedItemsChosen => {
@@ -560,7 +537,6 @@ const LeadForm = (props) => {
 
     const onFormSubmit = (values) => {
 
-        console.log("next button value is", values.nextButton);
         if (productsListData == undefined) {
             showErrorToast("Product not selected")
         }
@@ -631,11 +607,9 @@ const LeadForm = (props) => {
                 'agile_Colors@odata.bind': "/agile_colorses(" + dataOptionSet.color + ")",
                 'agile_SalePerson@odata.bind': "/contacts(" + contactKey + ")",
             })
-            console.log("request body is", requestBody);
         }
 
         else {
-            console.log("passing model id data is", dataOptionSet.model)
             requestBody = JSON.stringify({
                 subject: 'Interested in ' + AgileCategoryConstants[agileCategory - 1].label,
                 new_leadnature: leadNature,
@@ -664,9 +638,7 @@ const LeadForm = (props) => {
                 'agile_InterestedModel@odata.bind': "/products(" + dataOptionSet.model + ")",
                 'agile_SalePerson@odata.bind': "/contacts(" + contactKey + ")",
             })
-            console.log("request body is", requestBody);
         }
-        console.log("request body is", requestBody);
         fetch(postUrl, {
             method: !patchMode ? 'POST' : 'PATCH',
             headers: {
@@ -681,7 +653,6 @@ const LeadForm = (props) => {
 
                 setLoading(true);
                 goToQualifyProcess(response.headers.map.location, firstName, lastName, email, colorName, dataOptionSet.model);
-                console.log("reset")
                 navigation.navigate(Routes.LEAD_LIST_SCREEN)
                 navigation.reset({
                     index: 0,
@@ -704,13 +675,11 @@ const LeadForm = (props) => {
         }
         ).catch(error => {
             showErrorToast("Error while submitting lead form");
-            console.log("error is", error);
         })
     }
 
     function goToQualifyProcess(url, firstName, lastName, email, color, productId) {
         let errorMessage = '';
-        console.log("passed props is", url + firstName + lastName + color + productId);
         fetch(url + QUALIFY_ENDPOINT, {
             method: 'POST',
             headers: {
@@ -729,7 +698,6 @@ const LeadForm = (props) => {
                 response.json().then((responseJson) => {
                     responseJson.value.forEach(items => dataList.push(items))
                     let opportunityid = dataList[1].opportunityid;
-                    console.log("opportunity id is", opportunityid);
                     setLoading(false);
                     showSuccessToast("Lead qualified success");
                     setPassingProp({
@@ -740,15 +708,7 @@ const LeadForm = (props) => {
                         opportunityId: opportunityid,
                         color: color !== undefined ? color : ''
                     })
-                    // props.navigation.navigate(Routes.OPPORTUNITY_SCREEN, route.params = {
-                    //     firstName: firstName,
-                    //     lastName: lastName,
-                    //     email: email,
-                    //     productId: productId,
-                    //     opportunityId: opportunityid,
-                    //     model: product,
-                    //     color: color != undefined ? color : ''
-                    // });
+                
                 })
 
             }
@@ -768,7 +728,6 @@ const LeadForm = (props) => {
             }
         }).catch(error => {
             showErrorToast("Error while qualifying the leads");
-            console.log("error is", error);
         })
     }
 
@@ -804,7 +763,6 @@ const LeadForm = (props) => {
 
     const displayCampaignFields = (props) => {
         let element;
-        console.log("value of lead soruce is", dataOptionSet.leadSource);
         if (dataOptionSet.leadSource === 11) {
             element = (
                 <StyledInput
@@ -823,7 +781,6 @@ const LeadForm = (props) => {
 
     const displayOtherModel = (props) => {
         let element;
-        console.log("value of model is", dataOptionSet.currentVehicle);
         if (dataOptionSet.currentVehicle == 8) {
             element = (
                 <StyledInput
@@ -927,7 +884,6 @@ const LeadForm = (props) => {
     }
 
     const qualifyLead = async (props) => {
-        console.log('here');
         setQualify(true);
         await props.handleSubmit();
 
@@ -970,7 +926,6 @@ const LeadForm = (props) => {
     const buttons = [{ element: component1 }, { element: component2 }, { element: component3 }]
 
     const updateIndex = (selectedIndex) => {
-        console.log("selected index is", selectedIndex);
         setIndex(selectedIndex);
         if (selectedIndex == 0) {
             if (dataOptionSet.opportunityId !== null && dataOptionSet.opportunityId !== undefined) {
@@ -1003,12 +958,6 @@ const LeadForm = (props) => {
     }
     const { selectedIndex } = index;
 
-    console.log("token is", token);
-    console.log("product lisr data is", productsListData);
-    console.log("first name is", dataOptionSet.firstName);
-
-    console.log("values selected are", selectedItems.selectedItems);
-
     return (
         <SafeAreaView style={{ width: '100%', flex: 1, backgroundColor: "#ffffff" }}>
 
@@ -1032,8 +981,8 @@ const LeadForm = (props) => {
                             <TouchableOpacity onPress={() => {
                                 setEditMode(false);
                                 setModelReload(true);
-                                setSelectedItems({ selectedItems: [] })
-                                setSelectedItemsChosen({ selectedItemsChosen: [] })
+                                // setSelectedItems({ selectedItems: [] })
+                                //setSelectedItemsChosen({ selectedItemsChosen: [] })
                                 setPatchMode(true);
                                 setPostUrl(BASE_URL + LEADS_ENDPOINT + '(' + leadId + ')');
                             }}>
@@ -1361,8 +1310,8 @@ const LeadForm = (props) => {
                                                 hideTags
                                                 items={ChooseReasonConstants}
                                                 uniqueKey="id"
-                                                onSelectedItemsChange={onSelectedItemsChange}
-                                                selectedItems={selectedItems.selectedItems}
+                                                onSelectedItemsChange={onSelectedItemsChosenChange}
+                                                selectedItems={selectedItemsChosen.selectedItemsChosen}
                                                 selectText=""
                                                 searchInputPlaceholderText="Search Items..."
                                                 onChangeInput={(text) => console.log(text)}
@@ -1377,6 +1326,7 @@ const LeadForm = (props) => {
                                                 selectedItemTextColor="#CCC"
                                                 selectedItemIconColor="#CCC"
                                                 itemTextColor="#333333"
+                                                canAddItems={false}
                                                 displayKey="name"
                                                 searchInputStyle={{ color: '#CCC' }}
                                                 submitButtonColor="#CCC"
@@ -1412,8 +1362,8 @@ const LeadForm = (props) => {
                                                 hideTags
                                                 items={RejectReasonConstants}
                                                 uniqueKey="id"
-                                                onSelectedItemsChange={onSelectedItemsChosenChange}
-                                                selectedItems={selectedItemsChosen.selectedItemsChosen}
+                                                onSelectedItemsChange={onSelectedItemsChange}
+                                                selectedItems={selectedItems.selectedItems}
                                                 selectText=""
                                                 searchInputPlaceholderText="Search Items..."
                                                 onChangeInput={(text) => console.log(text)}

@@ -1,41 +1,36 @@
 /* eslint-disable react-native/no-inline-styles */
+import AsyncStorage from '@react-native-community/async-storage';
+import { useNavigation } from '@react-navigation/native';
+import { useStoreActions, useStoreState } from 'easy-peasy';
 import React, { useRef, useState } from 'react';
-import { Text, Keyboard, Image, StyleSheet } from 'react-native';
-import { useStoreState, useStoreActions } from 'easy-peasy';
-import { STATUS } from '../../Constants';
-import LoadingActionContainer from '../../Components/LoadingActionContainer';
-import {
-  Section,
-  Container,
-  PasswordInputX,
-  InputX,
-  ButtonX,
-} from '../../Components';
-
-import useAppTheme from '../../Themes/Context';
-import useAuth from '../../Services/Auth';
-import { showErrorToast, showInfoToast } from '../../Lib/Toast';
-import BottomPanel from '../../Components/Panel';
-import useTranslation from '../../i18n';
-import Fonts from '../../Themes/Fonts';
+import { Image, Keyboard, StyleSheet, Text } from 'react-native';
 import { View } from 'react-native-animatable';
-import { ThemeProvider, useNavigation } from '@react-navigation/native';
+import AnimatedLoader from "react-native-animated-loader";
+import { BASE_URL, CONTACTS_ENDPOINT, TOKEN_URL } from 'react-native-dotenv';
+import {
+  ButtonX, Container,
+
+  InputX, PasswordInputX, Section
+} from '../../Components';
+import { AuthContext } from '../../Components/context';
+import LoadingActionContainer from '../../Components/LoadingActionContainer';
+import BottomPanel from '../../Components/Panel';
+import { STATUS } from '../../Constants';
+import useTranslation from '../../i18n';
+import { showErrorToast, showInfoToast } from '../../Lib/Toast';
+import Routes from '../../Navigation/Routes';
 import defaultTheme from '../../Themes';
 import colors from '../../Themes/Colors';
-import Routes from '../../Navigation/Routes';
-import { BASE_URL, TOKEN_URL, CONTACTS_ENDPOINT } from 'react-native-dotenv';
-import AsyncStorage from '@react-native-community/async-storage';
-import { element } from 'prop-types';
+import useAppTheme from '../../Themes/Context';
+import Fonts from '../../Themes/Fonts';
 import { TokenContext } from '../App/TokenProvider';
-import AnimatedLoader from "react-native-animated-loader";
-import { AuthContext } from '../../Components/context';
+
 
 var dataList = [];
 
 export default () => {
   const onChange = useStoreActions(actions => actions.login.onLoginInputChange);
   const { t } = useTranslation();
-  //const {login} = useAuth();
   const { theme } = useAppTheme();
   const navigation = useNavigation();
   const { signIn } = React.useContext(AuthContext);
@@ -56,7 +51,7 @@ export default () => {
     status: state.login.status,
   }));
   const [load, setLoad] = React.useState(false);
-  const[token,setToken]=React.useState();
+  const [token, setToken] = React.useState();
 
   const loginUser = () => {
     Keyboard.dismiss();
@@ -96,7 +91,7 @@ export default () => {
       body: formBody
     }).then((response) => response.json())
       .then((responseData) => {
-       
+
         { storeToken(responseData.access_token, props.username) }
         console.log("Response data is" + responseData.access_token);
         { stepToSignIn(responseData.access_token, props) }
@@ -129,7 +124,7 @@ export default () => {
         responseJson.value.forEach(items => dataList.push(items))
         dataList.push(responseJson.value);
         console.log("Data is", dataList[0].firstname);
-        { checkAuth(token,otherProps) }
+        { checkAuth(token, otherProps) }
       })
   }
 
@@ -140,11 +135,10 @@ export default () => {
       console.log("error", e);
     }
   }
-  const checkAuth = (token,props) => {
+  const checkAuth = (token, props) => {
     let contains = false;
     const finalData = dataList.map(item => item.firstname + item.agile_password).find(item => item === props.username + props.password)
     dataList.filter(item => item.firstname + item.agile_password === props.username + props.password).map((value) => { storeContactId(value.contactid) });
-    console.log("final data is ", finalData);
 
 
     if (finalData === props.username + props.password) {
@@ -156,11 +150,6 @@ export default () => {
       setLoad(false);
       showErrorToast("Wrong Credentials!! Please Try Again");
     }
-    console.log(finalData)
-
-
-    console.log(contains);
-
 
   }
   const loading = status === STATUS.FETCHING;

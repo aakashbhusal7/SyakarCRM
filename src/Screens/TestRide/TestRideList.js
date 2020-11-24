@@ -1,18 +1,18 @@
 import AsyncStorage from '@react-native-community/async-storage';
 import { useNavigation } from '@react-navigation/native';
 import React from 'react';
-import { StyleSheet, View, SafeAreaView } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import AnimatedLoader from "react-native-animated-loader";
+import { SearchBar } from 'react-native-elements';
 import { ScrollView } from 'react-native-gesture-handler';
 import { HeaderButton } from '../../Components';
 import CardListComponent from '../../Components/CardListComponent';
+import { AuthContext } from '../../Components/context';
 import HeaderText from '../../Components/HeaderText';
 import { ICON_TYPE } from '../../Icons';
 import { showErrorToast } from '../../Lib/Toast';
 import defaultTheme from '../../Themes';
 import theme from '../../Themes/configs/default';
-import { AuthContext } from '../../Components/context';
-import { SearchBar } from 'react-native-elements';
 import Fonts from '../../Themes/Fonts';
 
 const TestRideList = (props) => {
@@ -22,8 +22,6 @@ const TestRideList = (props) => {
         const _toggleDrawer = () => {
             navigation.toggleDrawer();
         };
-
-        console.log('use effect home');
 
         navigation.setOptions({
             headerLeft: () => {
@@ -48,15 +46,10 @@ const TestRideList = (props) => {
         allData: leadData,
         filteredData: leadData
     });
-    // const navigation=useNavigation();
     React.useEffect(() => {
         retrieveToken();
 
     }, [token])
-
-    // React.useEffect(() => {
-    //     _apiCall();
-    // }, [])
 
 
     async function retrieveToken() {
@@ -65,10 +58,8 @@ const TestRideList = (props) => {
             if (value !== null) {
                 setToken(value);
                 _apiCall(value);
-                console.log("token is= " + value);
             }
         } catch (error) {
-            console.log("error is", error);
         }
     }
 
@@ -83,7 +74,6 @@ const TestRideList = (props) => {
                 }
 
             });
-            console.log("result is", result.status);
             if (result.ok) {
                 const data = await result.json();
                 let tempList = [];
@@ -117,21 +107,15 @@ const TestRideList = (props) => {
             }
         }
     }
-    console.log("lead data list filtered is", search.filteredData);
 
     const updateSearch = (text) => {
-        console.log("data of search is", leadData);
         setSearch({
             filteredData: leadData.filter(value =>
-
                 value.name.toLowerCase().includes(text.toLowerCase()),
             ),
-
         })
 
-
     }
-
 
     return (
         <View style={{ flex: 1, marginTop: 36, marginBottom: 24, paddingBottom: 24 }}>
@@ -165,20 +149,11 @@ const TestRideList = (props) => {
                             search.filteredData.map((u, i) => {
                                 if (u.name !== null) {
                                     return (
+                                        <CardListComponent flag="testRide" 
+                                        token={token} 
+                                        data={u} 
+                                        key={i} />
 
-                                        <CardListComponent flag="testRide" token={token} data={u} key={i} />
-
-
-
-                                        // <View key={i} >
-                                        //     <Card containerStyle={{ borderRadius:10,opacity:100,borderWidth:0}}>
-
-
-                                        //     <Text>{u.fullname}</Text>
-                                        //     <Text>{u.phone}</Text>
-
-                                        //     </Card>
-                                        // </View>
                                     );
                                 }
 

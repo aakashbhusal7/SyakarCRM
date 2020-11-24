@@ -10,9 +10,6 @@ export default props => {
     return (
         <Stack.Navigator headerMode="screen"
         >
-
-
-
             <Stack.Screen name={Routes.FOLLOW_UP_LIST_SCREEN} component={FollowUpList}
                 options={{
                     title: 'Menu',
@@ -40,9 +37,6 @@ export default props => {
                 }}
 
             />
-
-
-
 
         </Stack.Navigator>
     );

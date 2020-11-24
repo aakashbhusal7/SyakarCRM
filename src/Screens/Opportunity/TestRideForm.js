@@ -3,22 +3,21 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import { Formik } from 'formik';
 import React, { useState } from 'react';
 import { Dimensions, SafeAreaView, ScrollView, StatusBar, StyleSheet, Text, TextInput, View } from 'react-native';
-import { BASE_URL, OPPORTUNITY_ENDPOINT, LEADS_ENDPOINT } from 'react-native-dotenv';
+import AnimatedLoader from 'react-native-animated-loader';
+import { BASE_URL, OPPORTUNITY_ENDPOINT } from 'react-native-dotenv';
+import { ButtonGroup } from 'react-native-elements';
+import { TouchableOpacity } from 'react-native-gesture-handler';
 import * as yup from 'yup';
 import { ButtonX, HeaderButton } from '../../Components';
+import { AuthContext } from '../../Components/context';
 import HeaderText from '../../Components/HeaderText';
 import useTranslation from '../../i18n';
 import { IconX, ICON_TYPE } from '../../Icons';
 import { showErrorToast, showSuccessToast } from '../../Lib/Toast';
+import Routes from '../../Navigation/Routes';
 import defaultTheme from '../../Themes';
 import theme from '../../Themes/configs/default';
-import { ProgressSteps, ProgressStep } from 'react-native-progress-steps';
-import Routes from '../../Navigation/Routes';
 import Fonts from '../../Themes/Fonts';
-import { ButtonGroup } from 'react-native-elements';
-import { AuthContext } from '../../Components/context';
-import { TouchableOpacity } from 'react-native-gesture-handler';
-import AnimatedLoader from 'react-native-animated-loader';
 
 var width = Dimensions.get('window').width;
 
@@ -94,26 +93,6 @@ const StyledInput = ({ label, formikProps, uneditable, passedValue, formikKey, .
     );
 };
 
-
-
-const validationSchema = yup.object().shape({
-    firstName: yup
-        .string()
-        .label('FirstName')
-        .min(2)
-        .required('* First name is required'),
-    lastName: yup
-        .string()
-        .label('Last Name')
-        .min(2)
-        .required('* Last name is required'),
-    phoneNumber: yup
-        .number()
-        .label('Phone')
-        .min(2)
-        .required('* Phone no is required'),
-
-});
 const TestRideForm = (props) => {
     const { signOut } = React.useContext(AuthContext);
     const [editMode, setEditMode] = React.useState(false);
@@ -157,16 +136,13 @@ const TestRideForm = (props) => {
             opportunityId = route.params.bookingId;
         }
 
-    } else {
-        console.log("here");
-    }
+    } 
 
     React.useEffect(() => {
         const _toggleDrawer = () => {
             navigation.toggleDrawer();
         };
 
-        console.log('use effect home');
 
         navigation.setOptions({
             headerLeft: () => {
@@ -189,7 +165,6 @@ const TestRideForm = (props) => {
     if (route.params !== undefined) {
         if (route.params.flag == "edit") {
             bookingId = route.params.bookingId;
-            console.log("passed opportunity id is", route.params.bookingId);
         }
     }
     React.useEffect((async) => {
@@ -197,37 +172,12 @@ const TestRideForm = (props) => {
 
     }, [])
 
-    // let interest = '';
-    // let email = '';
-    // let subject = '';
-    // let opportunityId = '';
-    // if (route.params !== undefined) {
-    //     //console.log("passed props is", route.params.flag);
-    //     if (route.params.passingProp != undefined) {
-    //         interest = route.params.passingProp.flag;
-    //         email = route.params.passingProp.email;
-    //         subject = "Interested in " + route.params.passingProp.modelName;
-    //         opportunityId = route.params.passingProp.opportunityId;
-    //     } else {
-    //         opportunityId = route.params.bookingId;
-    //     }
-    // }
-
-    // else {
-    //     console.log("undefined props");
-    // }
-
     async function retrieveToken() {
         try {
             const value = await AsyncStorage.getItem('@token_key');
             if (value !== null) {
                 setToken(value);
                 fetchOpportunityStatus(value)
-
-                // if (reload == false) {
-                //     fetchExistingTestRide(value)
-                // }
-                console.log("token is= " + value);
             }
         } catch (error) {
             console.log("error is", error);
@@ -236,7 +186,6 @@ const TestRideForm = (props) => {
 
     async function fetchOpportunityStatus(token) {
         setLoading(true);
-        console.log("OPPORTUNITY ID IS", opportunityId);
         const res = await fetch(BASE_URL + OPPORTUNITY_ENDPOINT + '(' + opportunityId + ')', {
             method: 'GET',
             headers: {
@@ -250,17 +199,11 @@ const TestRideForm = (props) => {
             setOpportunityStatus(data.agile_interested);
             if (reload == false) {
 
-                console.log('opportunity status is', opportunityStatus);
-
                 if (data.agile_interested == 2) {
-                    console.log("here inside");
                     //setLoading(true);
                     fetchExistingTestRide(token)
                 } else {
                     setLoading(false);
-                    console.log("agile interested is", data.agile_interested);
-                    console.log("entered here");
-
                 }
 
             }
@@ -287,7 +230,6 @@ const TestRideForm = (props) => {
                 if (res.ok) {
                     res.json().then(
                         (resJson) => {
-                            console.log("lead is is", resJson._originatingleadid_value);
                             fetchParentLeadData(resJson._originatingleadid_value, token);
                             setDataOptionSet({
                                 licenseNumber: "" + resJson.agile_testridelicense,
@@ -311,7 +253,6 @@ const TestRideForm = (props) => {
                         showErrorToast(errorMessage)
                         console.log("error message is", errorMessage);
                     });
-                    console.log("error in edit lead form");
                 }
             })
         } else {
@@ -349,7 +290,6 @@ const TestRideForm = (props) => {
                     errorMessage = body.error.message;
                     showErrorToast(errorMessage)
                     setLoading(false);
-                    console.log("error message is", errorMessage);
                 });
 
             }
@@ -359,7 +299,6 @@ const TestRideForm = (props) => {
     console.log("data option sets are", dataOptionSet);
 
     const onFormSubmit = (values) => {
-        console.log("values are", values);
         postForm(values.licenseNumber, values.existingVehicle, values.feedback, subject)
     }
 
@@ -373,7 +312,6 @@ const TestRideForm = (props) => {
             agile_interested: "2",
             name: subject !== '' ? subject : dataOptionSet.name
         });
-        console.log("request body is", requestBody);
         if (opportunityId !== undefined) {
             fetch(BASE_URL + OPPORTUNITY_ENDPOINT + "(" + opportunityId + ")", {
                 method: 'PATCH',
@@ -386,7 +324,8 @@ const TestRideForm = (props) => {
                 if (response.ok) {
                     setComplete(true);
                     setLoading(false);
-                    !patchMode ? showSuccessToast("Successfully setup test ride form") : showSuccessToast("Successfully updated test ride form");
+                    !patchMode ? showSuccessToast("Successfully setup test ride form") : 
+                    showSuccessToast("Successfully updated test ride form");
                     navigation.navigate(Routes.TEST_RIDE_LIST_SCREEN)
                     navigation.reset({
                         index: 0,
@@ -583,9 +522,6 @@ const TestRideForm = (props) => {
                                         passedValue={dataOptionSet.feedback}
                                     />
 
-
-
-
                                     <View style={{
                                         position: 'absolute',
                                         bottom: 16,
@@ -609,7 +545,6 @@ const TestRideForm = (props) => {
                                     </View>
 
                                 </SafeAreaView>
-
 
                             )}
                         </Formik>

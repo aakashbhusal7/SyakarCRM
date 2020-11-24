@@ -1,23 +1,19 @@
 import AsyncStorage from '@react-native-community/async-storage';
-import React from 'react'
-import { View, StyleSheet, Text } from 'react-native'
-import { BASE_URL, OPPORTUNITY_ENDPOINT, LEADS_ENDPOINT } from 'react-native-dotenv';
-import { Card, ListItem, Button, Icon, SearchBar } from 'react-native-elements'
-import { ScrollView } from 'react-native-gesture-handler';
+import { useNavigation } from '@react-navigation/native';
+import React from 'react';
+import { StyleSheet, View } from 'react-native';
 import AnimatedLoader from "react-native-animated-loader";
-import { useNavigation, useRoute } from '@react-navigation/native';
+import { SearchBar } from 'react-native-elements';
+import { ScrollView } from 'react-native-gesture-handler';
+import { HeaderButton } from '../Components';
 import CardListComponent from '../Components/CardListComponent';
-import theme from '../Themes/configs/default';
-import { ICON_TYPE } from '../Icons';
+import { AuthContext } from '../Components/context';
 import HeaderText from '../Components/HeaderText';
+import { ICON_TYPE } from '../Icons';
 import { showErrorToast } from '../Lib/Toast';
 import defaultTheme from '../Themes';
-import Routes from '../Navigation/Routes';
-import { HeaderButton } from '../Components';
-import { AuthContext } from '../Components/context';
+import theme from '../Themes/configs/default';
 import Fonts from '../Themes/Fonts';
-import { date } from 'yup';
-import { object } from 'prop-types';
 
 const BookingList = (props) => {
 
@@ -28,7 +24,6 @@ const BookingList = (props) => {
             navigation.toggleDrawer();
         };
 
-        console.log('use effect home');
 
         navigation.setOptions({
             headerLeft: () => {
@@ -48,25 +43,15 @@ const BookingList = (props) => {
     const { signOut } = React.useContext(AuthContext);
     const [leadData, setLeadData] = React.useState([]);
     const [token, setToken] = React.useState();
-    const [leadList, setLeadList] = React.useState([{
-        "fullname": "",
-        "mobile": "",
-    }]);
     const [loading, setLoadindg] = React.useState(true);
     const [search, setSearch] = React.useState({
         allData: leadData,
         filteredData: leadData
     });
-    // const navigation=useNavigation();
     React.useEffect(() => {
         retrieveToken();
 
     }, [token])
-
-    // React.useEffect(() => {
-    //     _apiCall();
-    // }, [])
-
 
     async function retrieveToken() {
         try {
@@ -74,7 +59,6 @@ const BookingList = (props) => {
             if (value !== null) {
                 setToken(value);
                 _apiCall(value);
-                console.log("token is= " + value);
             }
         } catch (error) {
             console.log("error is", error);
@@ -91,11 +75,9 @@ const BookingList = (props) => {
             }
 
         });
-        console.log("result is", result.status);
         if (result.ok) {
             const data = await result.json();
             let tempList = [];
-
             data.value.filter(value => value.name !== null).map((object, key) =>
                 tempList.push({
                     "name": object.name,
@@ -125,49 +107,6 @@ const BookingList = (props) => {
 
         }
     }
-    console.log("lead data list is", leadData);
-
-    // async function fetchParentLead(leadId, token) {
-    //     let leadListTemp = [];
-    //     const res = await fetch(BASE_URL + LEADS_ENDPOINT + '(' + leadId + ')', {
-    //         method: 'GET',
-    //         headers: {
-    //             'Authorization': 'Bearer ' + token,
-    //             'Accept': 'application/json',
-    //             'Content-Type': 'application/json',
-    //         }
-
-    //     });
-    //     if (res.ok) {
-    //         const data = await res.json();
-    //         Object.values(data).map((object, key) => {
-    //             //console.log("object is",object);
-    //             leadListTemp.push({
-    //                 "fullname": object.fullname,
-    //                 "mobile": object.mobilephone
-    //             })
-    //         })
-    //         console.log("array list is",leadList);
-    //         setLeadList(leadListTemp);
-    //         //setMobileNumber(data.mobilephone);
-    //         //setFullName(data.fullname)
-    //         setLoadindg(false);
-    //     } else {
-    //         setLoadindg(false);
-    //         setLeadData(undefined);
-    //         if (res.status === 401) {
-    //             showErrorToast("User session expired!")
-    //             signOut();
-    //         } else {
-    //             const errorData = res.json();
-    //             const errorJson = errorData.error.message;
-    //             showErrorToast(errorJson);
-    //         }
-
-    //     }
-    //     //return leadList;
-    //     console.log("lead id is", leadId);
-    // }
 
     const updateSearch = (text) => {
         console.log("data of search is", leadData);
@@ -204,25 +143,16 @@ const BookingList = (props) => {
                     />
                     <ScrollView style={{ marginBottom: 24 }}>
 
-
                         {
                             leadData !== undefined && search.filteredData.map((u, i) => {
                                 if (u.name !== null) {
                                     return (
 
-                                        <CardListComponent flag="booking" token={token} data={u} key={i} />
+                                        <CardListComponent flag="booking" 
+                                        token={token} 
+                                        data={u} 
+                                        key={i} />
 
-
-
-                                        // <View key={i} >
-                                        //     <Card containerStyle={{ borderRadius:10,opacity:100,borderWidth:0}}>
-
-
-                                        //     <Text>{u.fullname}</Text>
-                                        //     <Text>{u.phone}</Text>
-
-                                        //     </Card>
-                                        // </View>
                                     );
                                 }
                             })

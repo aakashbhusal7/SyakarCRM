@@ -19,5 +19,5 @@ export const STATUS = {
 
 export const LOCALES = {
 	ENGLISH: { id: 1, name: "en", label: "ENGLISH" },
-	HINDI: { id: 2, name: "hi", label: "हिंदी" }
+	NEPALI: { id: 2, name: "ne", label: "Nepali" }
 };

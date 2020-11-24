@@ -1,27 +1,19 @@
 /* eslint-disable react-native/no-inline-styles */
-import React from 'react';
 import { createMaterialBottomTabNavigator } from '@react-navigation/material-bottom-tabs';
-import { Image, View } from 'react-native'
-import Routes from '../Routes/index';
-import Home from '../../Screens/Home';
-import App from '../../Screens/App';
-import Profile from '../../Screens/Profile';
-import { IconX, ICON_TYPE } from '../../Icons';
 import { createStackNavigator } from '@react-navigation/stack';
-import useAppTheme from '../../Themes/Context';
+import React from 'react';
 import useTranslation from '../../i18n';
+import { IconX, ICON_TYPE } from '../../Icons';
+import App from '../../Screens/App';
+import Home from '../../Screens/Home';
+import Profile from '../../Screens/Profile';
 import NavigationStyles from '../../Styles/NavigationStyles';
-import Leads from '../../Screens/Lead/Leads';
-import LeadStack from '../LeadStack';
-import OpportunityStack from '../OpportunityStack';
-import TestRideList from '../../Screens/TestRide/TestRideList';
-import OpportunityForm from '../../Screens/Opportunity/OpportunityForm';
-import TestRideForm from '../../Screens/Opportunity/TestRideForm';
-import TestRideStack from '../TestRideStack';
-import FollowUpList from '../../Screens/FollowUp/FollowUpList';
-import FollowupStack from '../FollowupStack';
-import BookingList from '../../Screens/BookingList';
+import useAppTheme from '../../Themes/Context';
 import BookingStack from '../BookingStack';
+import FollowupStack from '../FollowupStack';
+import LeadStack from '../LeadStack';
+import Routes from '../Routes/index';
+import TestRideStack from '../TestRideStack';
 
 const HomeStackScreen = () => {
   const { t } = useTranslation();
